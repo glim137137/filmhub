@@ -1,13 +1,10 @@
 #!/bin/bash
 
-cd ./api
-pip install --upgrade pip
-pip install -r requirements.txt
-cd ./src
+cd ./api/src
 echo "Installing database..."
 python -u init_db.py
 echo "Running app.py..."
-python -u app.py
+gunicorn -w 4 -k gevent -b 0.0.0.0:5000 --access-logfile data/logs/access.log --error-logfile data/logs/error.log app:app
 
 # Install Node.js environment
 echo "Installing Node.js..."
