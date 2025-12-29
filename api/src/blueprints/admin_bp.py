@@ -5,7 +5,7 @@ from services.log_service import LogService
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from functools import wraps
 
-admin_bp = Blueprint('admin', __name__)
+admin_bp = Blueprint('admin', __name__, url_prefix='/api')
 
 def admin_required(f):
     """

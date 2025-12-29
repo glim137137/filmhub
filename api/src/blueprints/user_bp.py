@@ -3,7 +3,7 @@ from common.result import Result
 from services.user_service import UserService
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-user_bp = Blueprint('user', __name__)
+user_bp = Blueprint('user', __name__, url_prefix='/api')
 
 @user_bp.route('/users/me', methods=['GET'])
 @jwt_required()

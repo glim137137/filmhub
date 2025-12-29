@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_req
 from common.result import Result
 from services.post_service import PostService
 
-post_bp = Blueprint('post', __name__)
+post_bp = Blueprint('post', __name__, url_prefix='/api')
 
 
 @post_bp.route('/posts', methods=['POST'])

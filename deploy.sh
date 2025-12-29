@@ -9,7 +9,7 @@ cd ./api/src
 echo "Installing database..."
 python -u init_db.py
 echo "Running app.py..."
-gunicorn -w 4 -k gevent -b 0.0.0.0:5000 --access-logfile ./data/logs/access.log --error-logfile data/logs/error.log app:app
+gunicorn -w 4 -k gevent -b 0.0.0.0:5000 app:app
 
 # Install Node.js environment
 echo "Installing Node.js..."

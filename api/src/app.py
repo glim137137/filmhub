@@ -53,8 +53,8 @@ def create_app():
         except Exception as e:
             return "File not found", 404
 
-    app.add_url_rule('/api/posters/<path:filename>', 'serve_poster', serve_poster)
-    app.add_url_rule('/api/avatars/<path:filename>', 'serve_avatar', serve_avatar)
+    app.add_url_rule('/static/posters/<path:filename>', 'serve_poster', serve_poster)
+    app.add_url_rule('/static/avatars/<path:filename>', 'serve_avatar', serve_avatar)
 
     # register blueprints
     app.register_blueprint(user_bp)
@@ -62,7 +62,6 @@ def create_app():
     app.register_blueprint(film_bp)
     app.register_blueprint(post_bp)
     app.register_blueprint(admin_bp)
-    # app.register_blueprint()
 
     # register global exception handlers
     register_exception_handlers(app)

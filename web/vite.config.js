@@ -23,7 +23,12 @@ export default defineConfig({
         rewrite: (path) => path
       },
       '/avatars': {
-        target: 'http://localhost:5000/api',
+        target: 'http://localhost:5000/static',
+        changeOrigin: true,
+        rewrite: (path) => path
+      },
+      '/posters': {
+        target: 'http://localhost:5000/static',
         changeOrigin: true,
         rewrite: (path) => path
       }

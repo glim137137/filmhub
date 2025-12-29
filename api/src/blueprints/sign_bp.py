@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from common.result import Result
 from services.sign_service import SignService
 
-sign_bp = Blueprint('sign', __name__)
+sign_bp = Blueprint('sign', __name__, url_prefix='/api')
 
 @sign_bp.route('/signup', methods=['POST'])
 def signup():

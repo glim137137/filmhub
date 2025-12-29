@@ -3,7 +3,7 @@ from common.result import Result
 from services.film_service import FilmService
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-film_bp = Blueprint('film', __name__)
+film_bp = Blueprint('film', __name__, url_prefix='/api')
 
 @film_bp.route('/films/<int:film_id>', methods=['GET'])
 @jwt_required()

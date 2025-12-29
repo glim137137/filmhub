@@ -441,8 +441,8 @@ const hideSuggestions = () => {
 
 // Helper functions
 const getPosterUrl = (posterUrl) => {
-  if (!posterUrl) return '/placeholder-movie.jpg'
-  return `http://localhost:5000/api/posters/${posterUrl}`
+  if (!posterUrl) return '/film.jpg'
+  return `/posters/${posterUrl}`
 }
 
 const onImageError = (e) => {
