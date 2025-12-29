@@ -7,34 +7,65 @@
       <div class="nav-links" role="list">
         <!-- Admin mode navigation -->
         <template v-if="isAdminMode">
-          <router-link to="/admin" class="nav-link" role="listitem" :aria-current="$route.path === '/admin' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin' }">Dashboard</router-link>
-          <router-link to="/admin/users" class="nav-link" role="listitem" :aria-current="$route.path === '/admin/users' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin/users' }">Users</router-link>
-          <router-link to="/admin/films" class="nav-link" role="listitem" :aria-current="$route.path === '/admin/films' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin/films' }">Films</router-link>
-          <router-link to="/admin/logs" class="nav-link" role="listitem" :aria-current="$route.path === '/admin/logs' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin/logs' }">Logs</router-link>
+          <router-link to="/admin" class="nav-link" role="listitem" :aria-current="$route.path === '/admin' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin' }" aria-label="Dashboard (Alt + 1)">
+            <span class="nav-text">Dashboard</span>
+            <span class="nav-shortcut">Alt+1</span>
+          </router-link>
+          <router-link to="/admin/users" class="nav-link" role="listitem" :aria-current="$route.path === '/admin/users' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin/users' }" aria-label="Users (Alt + 2)">
+            <span class="nav-text">Users</span>
+            <span class="nav-shortcut">Alt+2</span>
+          </router-link>
+          <router-link to="/admin/films" class="nav-link" role="listitem" :aria-current="$route.path === '/admin/films' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin/films' }" aria-label="Films (Alt + 3)">
+            <span class="nav-text">Films</span>
+            <span class="nav-shortcut">Alt+3</span>
+          </router-link>
+          <router-link to="/admin/logs" class="nav-link" role="listitem" :aria-current="$route.path === '/admin/logs' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/admin/logs' }" aria-label="Logs (Alt + 4)">
+            <span class="nav-text">Logs</span>
+            <span class="nav-shortcut">Alt+4</span>
+          </router-link>
           <span class="admin-badge" role="status" aria-label="Administrator mode active">ADMIN</span>
         </template>
 
         <!-- Regular user navigation -->
         <template v-else>
-          <router-link to="/" class="nav-link" role="listitem" :aria-current="$route.path === '/' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/' }">Home</router-link>
-          <router-link to="/films" class="nav-link" role="listitem" :aria-current="$route.path === '/films' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/films' }">Films</router-link>
-          <router-link to="/explore" class="nav-link" role="listitem" :aria-current="$route.path === '/explore' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/explore' }">Explore</router-link>
-          <router-link to="/about" class="nav-link" role="listitem" :aria-current="$route.path === '/about' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/about' }">About</router-link>
-          <router-link v-if="authStore.isAuthenticated" to="/profile" class="nav-link" role="listitem" :aria-current="$route.path === '/profile' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/profile' }">Me</router-link>
+          <router-link to="/" class="nav-link" role="listitem" :aria-current="$route.path === '/' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/' }" aria-label="Home (Alt + 1)">
+            <span class="nav-text">Home</span>
+            <span class="nav-shortcut">Alt+1</span>
+          </router-link>
+          <router-link to="/films" class="nav-link" role="listitem" :aria-current="$route.path === '/films' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/films' }" aria-label="Films (Alt + 2)">
+            <span class="nav-text">Films</span>
+            <span class="nav-shortcut">Alt+2</span>
+          </router-link>
+          <router-link to="/explore" class="nav-link" role="listitem" :aria-current="$route.path === '/explore' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/explore' }" aria-label="Explore (Alt + 3)">
+            <span class="nav-text">Explore</span>
+            <span class="nav-shortcut">Alt+3</span>
+          </router-link>
+          <router-link to="/about" class="nav-link" role="listitem" :aria-current="$route.path === '/about' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/about' }" aria-label="About (Alt + 4)">
+            <span class="nav-text">About</span>
+            <span class="nav-shortcut">Alt+4</span>
+          </router-link>
+          <router-link v-if="authStore.isAuthenticated" to="/profile" class="nav-link" role="listitem" :aria-current="$route.path === '/profile' ? 'page' : undefined" :class="{ 'router-link-active': $route.path === '/profile' }" aria-label="Profile (Alt + 5)">
+            <span class="nav-text">Me</span>
+            <span class="nav-shortcut">Alt+5</span>
+          </router-link>
         </template>
 
         <!-- Auth buttons (always show) -->
-        <button v-if="authButton.action === 'logout'" @click="handleAuthClick" class="nav-link logout-button" role="listitem" aria-label="Sign out of your account">
+        <button v-if="authButton.action === 'logout'" @click="handleAuthClick" class="nav-link logout-button" role="listitem" aria-label="Sign out of your account (Alt + 0)">
           <img src="/log-out.svg" alt="Sign Out" class="logout-icon" aria-hidden="true" />
+          <span class="nav-shortcut logout-shortcut">Alt+0</span>
         </button>
-        <router-link v-else :to="authButton.link" class="nav-link" role="listitem" :aria-label="`Navigate to ${authButton.text} page`">{{ authButton.text }}</router-link>
+        <router-link v-else :to="authButton.link" class="nav-link" role="listitem" :aria-label="`Navigate to ${authButton.text} page (Alt + 0)`">
+          <span class="nav-text">{{ authButton.text }}</span>
+          <span class="nav-shortcut">Alt+0</span>
+        </router-link>
       </div>
     </div>
   </nav>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter, useRoute } from 'vue-router'
 import toastManager from '@/api/toastManager'
@@ -93,6 +124,73 @@ const handleAuthClick = async () => {
     router.push(authButton.value.link)
   }
 }
+
+// Keyboard navigation handler
+const handleKeydown = (event) => {
+  // Only handle Alt + number combinations
+  if (!event.altKey) return
+
+  const key = event.key
+
+  // Prevent default browser behavior for these shortcuts
+  if (['1', '2', '3', '4', '5', '0'].includes(key)) {
+    event.preventDefault()
+  }
+
+  if (isAdminMode.value) {
+    // Admin mode navigation
+    switch (key) {
+      case '1':
+        router.push('/admin')
+        break
+      case '2':
+        router.push('/admin/users')
+        break
+      case '3':
+        router.push('/admin/films')
+        break
+      case '4':
+        router.push('/admin/logs')
+        break
+      case '0':
+        handleAuthClick()
+        break
+    }
+  } else {
+    // Regular user navigation
+    switch (key) {
+      case '1':
+        router.push('/')
+        break
+      case '2':
+        router.push('/films')
+        break
+      case '3':
+        router.push('/explore')
+        break
+      case '4':
+        router.push('/about')
+        break
+      case '5':
+        if (authStore.isAuthenticated) {
+          router.push('/profile')
+        }
+        break
+      case '0':
+        handleAuthClick()
+        break
+    }
+  }
+}
+
+// Lifecycle hooks for keyboard event listeners
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <style scoped>
@@ -165,6 +263,55 @@ const handleAuthClick = async () => {
   letter-spacing: 0.5px;
 }
 
+/* Keyboard shortcut styles */
+.nav-link {
+  position: relative;
+}
+
+.nav-text {
+  display: block;
+}
+
+.nav-shortcut {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.nav-link:hover .nav-shortcut {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.logout-button {
+  position: relative;
+}
+
+.logout-shortcut {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-2px);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.logout-button:hover .logout-shortcut {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .nav-container {
@@ -177,6 +324,12 @@ const handleAuthClick = async () => {
 
   .brand-text {
     font-size: 1.2rem;
+  }
+
+  /* Hide keyboard shortcuts on mobile for cleaner look */
+  .nav-shortcut,
+  .logout-shortcut {
+    display: none;
   }
 }
 </style>

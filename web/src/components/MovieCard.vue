@@ -15,7 +15,7 @@
           <span class="rating-text">{{ movie.rating?.toFixed(1) || 'N/A' }}</span>
         </div>
         <div class="rating-right">
-          <img src="/star-blue.svg" alt="favorite" class="star-placeholder" @click="onStarClick" tabindex="0"/>
+          <img src="/star-blue.svg" alt="Rate this movie" class="star-placeholder" @click="onStarClick" @keydown.enter="onStarClick" @keydown.space="onStarClick" tabindex="0" role="button" aria-label="Rate this movie"/>
         </div>
       </div>
       <h3 class="movie-title clickable" @click="onTitleClick">{{ movie.title }}</h3>
@@ -36,8 +36,9 @@
 
     <!-- Rating Modal -->
     <div v-if="showRatingModal" class="rating-modal-overlay" @click="closeRatingModal">
-      <div class="rating-modal" @click.stop>
+      <div class="rating-modal" @click.stop @keydown="handleRatingKeydown" tabindex="-1">
         <h3 class="rating-modal-title">Rate this movie</h3>
+        <p class="rating-instructions">Use ← → arrow keys to adjust rating, Enter to submit, Esc to cancel</p>
         <div class="stars-container">
           <div
             v-for="star in 10"
@@ -70,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { getUserRating, submitRating as submitRatingApi, addFavorite, removeFavorite } from '@/api/user.js'
 import Toast from '@/components/Toast.vue'
@@ -154,6 +155,13 @@ const onStarClick = async () => {
 
   // Show rating modal
   showRatingModal.value = true
+
+  // Focus modal for keyboard navigation
+  await nextTick()
+  const modal = document.querySelector('.rating-modal')
+  if (modal) {
+    modal.focus()
+  }
 }
 
 const onWatchlistClick = async () => {
@@ -250,6 +258,9 @@ const submitRating = async (rating) => {
     // Close modal
     closeRatingModal()
 
+    // Show success toast
+    toastRef.value?.addToast(`Successfully rated "${props.movie.title}" ${rating} stars!`, 'success')
+
     // Emit event to parent component
     emit('rating-submitted', { movie: props.movie, rating })
 
@@ -258,6 +269,36 @@ const submitRating = async (rating) => {
     toastRef.value?.addToast('Failed to submit rating. Please try again.', 'error')
   } finally {
     isSubmittingRating.value = false
+  }
+}
+
+// Keyboard navigation for rating modal
+const handleRatingKeydown = (event) => {
+  const currentRating = hoverRating.value || userRating.value || 0
+
+  switch (event.key) {
+    case 'ArrowLeft':
+      event.preventDefault()
+      // Decrease rating (minimum 1)
+      hoverRating.value = Math.max(1, currentRating - 1)
+      break
+    case 'ArrowRight':
+      event.preventDefault()
+      // Increase rating (maximum 10)
+      hoverRating.value = Math.min(10, currentRating + 1)
+      break
+    case 'Enter':
+      event.preventDefault()
+      // Submit current rating
+      if (hoverRating.value || userRating.value) {
+        submitRating(hoverRating.value || userRating.value)
+      }
+      break
+    case 'Escape':
+      event.preventDefault()
+      // Close modal
+      closeRatingModal()
+      break
   }
 }
 </script>
@@ -409,7 +450,16 @@ const submitRating = async (rating) => {
   font-size: 1.5rem;
   font-weight: bold;
   text-align: center;
+  margin-bottom: 1rem;
+}
+
+.rating-instructions {
+  color: #cccccc;
+  font-size: 0.7rem;
+  text-align: center;
   margin-bottom: 1.5rem;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 .stars-container {
