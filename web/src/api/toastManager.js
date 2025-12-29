@@ -3,11 +3,13 @@ class ToastManager {
   constructor() {
     this.toastComponent = null
     this.queue = []
+    this.isRegistered = false
   }
 
   // Register the toast component instance
   register(toastInstance) {
     this.toastComponent = toastInstance
+    this.isRegistered = true
     // Process any queued operations
     while (this.queue.length > 0) {
       const { method, args } = this.queue.shift()
@@ -18,6 +20,7 @@ class ToastManager {
   // Unregister the toast component
   unregister() {
     this.toastComponent = null
+    this.isRegistered = false
   }
 
   // Safe method caller with queuing
@@ -42,6 +45,10 @@ class ToastManager {
 
   removeToast(id) {
     return this._call('removeToast', id)
+  }
+
+  clearAllToasts() {
+    return this._call('clearAllToasts')
   }
 
   // Helper methods for common use cases

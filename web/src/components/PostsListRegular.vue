@@ -813,8 +813,13 @@ const formatTimestamp = (ts) => {
   filter: invert(69%) sepia(89%) saturate(749%) hue-rotate(358deg) brightness(101%) contrast(101%);
 }
 
+.create-icon {
+  color: #ffffff; /* Default white color */
+  transition: color 0.3s ease;
+}
+
 .floating-create-btn:hover .create-icon {
-  filter: invert(69%) sepia(89%) saturate(749%) hue-rotate(358deg) brightness(101%) contrast(101%);
+  color: #f5c518; /* Yellow/gold color on hover */
 }
 .like-btn.active,
 .like-btn.liked {

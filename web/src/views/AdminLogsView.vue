@@ -60,6 +60,9 @@
       </div>
     </section>
   </div>
+
+  <!-- Toast Component -->
+  <Toast />
 </template>
 
 <script setup>
@@ -67,6 +70,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter } from 'vue-router'
 import { getRecentLogs, getLogsStats } from '@/api/admin.js'
+import Toast from '@/components/Toast.vue'
 import * as echarts from 'echarts'
 
 const authStore = useAuthStore()

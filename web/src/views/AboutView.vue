@@ -65,10 +65,14 @@
       <img src="/shooting-film.jpg" alt="Shooting Film" />
     </section>
   </div>
+
+  <!-- Toast Component -->
+  <Toast />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import Toast from '@/components/Toast.vue'
 
 // Dynamic text for hero section
 const words = ['Passion of Life', 'Beauty Of Film', 'Stories of People']

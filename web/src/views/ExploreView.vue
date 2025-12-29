@@ -19,12 +19,16 @@
       </div>
     </div>
   </div>
+
+  <!-- Toast Component -->
+  <Toast />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'
 import { useRouter } from 'vue-router'
+import Toast from '@/components/Toast.vue'
 
 const tags = ref([])
 const loading = ref(false)

@@ -18,6 +18,9 @@
         class="posts-list-component"
       />
     </div>
+
+    <!-- Toast Component -->
+    <Toast ref="toastRef" />
   </template>
   
   <script setup>
@@ -26,6 +29,7 @@ import { useRoute } from 'vue-router'
 import http from '@/api/http'
 import { useAuthStore } from '@/stores/auth.js'
 import PostsListRegular from '@/components/PostsListRegular.vue'
+import Toast from '@/components/Toast.vue'
   
   const route = useRoute()
   // Decode route param (may be percent-encoded in the URL)
@@ -34,10 +38,13 @@ import PostsListRegular from '@/components/PostsListRegular.vue'
   const posts = ref([])
   const loading = ref(false)
   const loadingMore = ref(false)
-  const hasMorePosts = ref(true)
-  const currentPage = ref(0)
-  const pageSize = 10 // Number of posts to load per page
-  const authStore = useAuthStore()
+const hasMorePosts = ref(true)
+const currentPage = ref(0)
+const pageSize = 10 // Number of posts to load per page
+const authStore = useAuthStore()
+
+// Toast component reference
+const toastRef = ref(null)
   
   // Get tag ID by name
   const getTagId = async (tagName) => {

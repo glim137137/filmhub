@@ -31,11 +31,14 @@
                   accept="image/*"
                   @change="onAvatarSelected"
                   style="display: none"
+                  aria-label="Image Input"
                 />
                 <button
                   type="button"
                   class="upload-btn"
                   @click="$refs.avatarInput.click()"
+                  alt="Choose Image"
+                  aria-label="Choose Image"
                 >
                   Choose Image
                 </button>

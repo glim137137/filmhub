@@ -37,6 +37,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter, useRoute } from 'vue-router'
+import toastManager from '@/api/toastManager'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -76,10 +77,18 @@ const authButton = computed(() => {
   }
 })
 
-const handleAuthClick = () => {
+const handleAuthClick = async () => {
   if (authButton.value.action === 'logout') {
-    authStore.logout()
-    router.push('/login')
+    const confirmed = await toastManager.addConfirm('Are you sure you want to sign out?', {
+      confirmText: 'Sign Out',
+      cancelText: 'Cancel',
+      type: 'warning'
+    })
+
+    if (confirmed) {
+      authStore.logout()
+      router.push('/login')
+    }
   } else if (authButton.value.link) {
     router.push(authButton.value.link)
   }

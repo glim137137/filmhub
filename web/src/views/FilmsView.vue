@@ -71,7 +71,7 @@
           <!-- Genre Filter -->
           <div class="filter-group">
             <label class="filter-label">Genre</label>
-            <div class="custom-select" @click.stop="toggleGenreDropdown" :class="{ 'active': showGenreDropdown }">
+            <div class="custom-select" @click.stop="toggleGenreDropdown" :class="{ 'active': showGenreDropdown }" tabindex="0">
               <div class="select-display">
                 <span>{{ getGenreDisplayText() }}</span>
                 <span class="select-arrow">▼</span>
@@ -93,7 +93,7 @@
           <!-- Year Filter -->
           <div class="filter-group">
             <label class="filter-label">Year</label>
-            <div class="custom-select" @click.stop="toggleYearDropdown" :class="{ 'active': showYearDropdown }">
+            <div class="custom-select" @click.stop="toggleYearDropdown" :class="{ 'active': showYearDropdown }" tabindex="0">
               <div class="select-display">
                 <span>{{ getYearDisplayText() }}</span>
                 <span class="select-arrow">▼</span>
@@ -115,7 +115,7 @@
           <!-- Language Filter -->
           <div class="filter-group">
             <label class="filter-label">Language</label>
-            <div class="custom-select" @click.stop="toggleLanguageDropdown" :class="{ 'active': showLanguageDropdown }">
+            <div class="custom-select" @click.stop="toggleLanguageDropdown" :class="{ 'active': showLanguageDropdown }" tabindex="0">
               <div class="select-display">
                 <span>{{ getLanguageDisplayText() }}</span>
                 <span class="select-arrow">▼</span>
@@ -171,12 +171,16 @@
       </div>
     </section>
   </div>
+
+  <!-- Toast Component -->
+  <Toast />
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MovieCard from '@/components/MovieCard.vue'
+import Toast from '@/components/Toast.vue'
 import {
   searchFilms,
   getFilmByTitle,

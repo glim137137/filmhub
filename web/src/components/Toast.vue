@@ -52,17 +52,34 @@ const isVisible = computed(() => toasts.value.length > 0)
 
 const emit = defineEmits(['confirm', 'cancel', 'close'])
 
+// Define clearAllToasts function first
+const clearAllToasts = () => {
+  // Mark all toasts as leaving and remove them after animation
+  toasts.value.forEach(toast => {
+    toast.leaving = true
+  })
+
+  setTimeout(() => {
+    toasts.value.splice(0, toasts.value.length)
+  }, 300)
+}
+
 // Register with global toast manager on mount
 onMounted(() => {
+  // Clear any stale toasts from previous navigation
+  clearAllToasts()
   toastManager.register({
     addToast,
     addConfirm,
-    removeToast
+    removeToast,
+    clearAllToasts
   })
 })
 
 // Unregister on unmount
 onUnmounted(() => {
+  // Clear all toasts before unregistering to prevent stale toasts
+  clearAllToasts()
   toastManager.unregister()
 })
 
@@ -141,7 +158,6 @@ const removeToast = (id) => {
   }, 300)
 }
 
-
 const handleConfirm = (toast) => {
   toast.resolve?.(true)
   removeToast(toast.id)
@@ -159,7 +175,8 @@ const handleCancel = (toast) => {
 defineExpose({
   addToast,
   addConfirm,
-  removeToast
+  removeToast,
+  clearAllToasts
 })
 </script>
 

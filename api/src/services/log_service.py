@@ -18,7 +18,7 @@ class LogService:
             action: str - Description of the action performed
         """
         try:
-            log_entry = Log(user_id=user_id, action=action)
+            log_entry = Log(user_id=user_id, action=action, created_at=datetime.now())
             db.session.add(log_entry)
             db.session.commit()
 

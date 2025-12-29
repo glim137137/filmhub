@@ -107,22 +107,22 @@ export const useAuthStore = defineStore('auth', () => {
     const storedToken = localStorage.getItem('token')
     if (storedToken) {
       const userData = parseToken(storedToken)
-      if (userData) {
+      if (userData && !isTokenExpired(storedToken)) {
         token.value = storedToken
         user.value = userData
       } else {
-        // Invalid token, clear it
+        // Invalid or expired token, clear it
         localStorage.removeItem('token')
       }
     }
   }
 
   // Check if token is expired (simplified)
-  const isTokenExpired = () => {
-    if (!token.value) return true
+  const isTokenExpired = (tokenStr = token.value) => {
+    if (!tokenStr) return true
 
     try {
-      const payload = token.value.split('.')[1]
+      const payload = tokenStr.split('.')[1]
       const decodedPayload = JSON.parse(atob(payload))
       const currentTime = Date.now() / 1000
 

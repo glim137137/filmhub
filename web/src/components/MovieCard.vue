@@ -15,7 +15,7 @@
           <span class="rating-text">{{ movie.rating?.toFixed(1) || 'N/A' }}</span>
         </div>
         <div class="rating-right">
-          <img src="/star-blue.svg" alt="favorite" class="star-placeholder" @click="onStarClick" />
+          <img src="/star-blue.svg" alt="favorite" class="star-placeholder" @click="onStarClick" tabindex="0"/>
         </div>
       </div>
       <h3 class="movie-title clickable" @click="onTitleClick">{{ movie.title }}</h3>

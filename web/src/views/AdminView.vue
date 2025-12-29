@@ -89,6 +89,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Toast Component -->
+  <Toast />
 </template>
 
 <script setup>
@@ -96,6 +99,7 @@ import { onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter } from 'vue-router'
 import { getAdminStats, getLogsStats, getTopActiveUsers } from '@/api/admin.js'
+import Toast from '@/components/Toast.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

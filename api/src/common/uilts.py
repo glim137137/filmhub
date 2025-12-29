@@ -207,3 +207,122 @@ class SearchUtils:
             pop_score * weights['popularity']
         )
         return float(final)
+
+
+class TrieNode:
+    """Node for Trie data structure."""
+
+    def __init__(self):
+        self.children = {}
+        self.is_end_of_word = False
+        self.word = None  # Store the complete word at end nodes
+
+
+class Trie:
+    """Trie (prefix tree) with edit distance search capabilities."""
+
+    def __init__(self):
+        self.root = TrieNode()
+
+    def insert(self, word: str):
+        """Insert a word into the trie."""
+        if not word:
+            return
+
+        node = self.root
+        for char in word.lower():
+            if char not in node.children:
+                node.children[char] = TrieNode()
+            node = node.children[char]
+        node.is_end_of_word = True
+        node.word = word
+
+    def search_prefix(self, prefix: str, max_results: int = 10) -> list:
+        """Search for words starting with the given prefix."""
+        if not prefix:
+            return []
+
+        node = self.root
+        # Navigate to the prefix end
+        for char in prefix.lower():
+            if char not in node.children:
+                return []
+            node = node.children[char]
+
+        # Collect all words under this node
+        results = []
+        self._collect_words(node, results, max_results)
+        return results
+
+    def _collect_words(self, node: TrieNode, results: list, max_results: int):
+        """Recursively collect words from the trie node."""
+        if len(results) >= max_results:
+            return
+
+        if node.is_end_of_word and node.word:
+            results.append(node.word)
+
+        for child in node.children.values():
+            self._collect_words(child, results, max_results)
+
+    def search_with_edit_distance(self, word: str, max_distance: int = 3, max_results: int = 5) -> list:
+        """
+        Search for words within edit distance using weighted edit distance.
+        Returns list of (word, distance) tuples.
+        """
+        if not word:
+            return []
+
+        candidates = []
+        word_lower = word.lower()
+
+        # Use a more efficient approach: DFS with pruning
+        self._edit_distance_search(self.root, "", word_lower, candidates, max_distance, max_results)
+
+        # Sort by distance, then alphabetically
+        candidates.sort(key=lambda x: (x[1], x[0]))
+
+        return [(word, dist) for word, dist in candidates[:max_results]]
+
+    def _edit_distance_search(self, node: TrieNode, current_prefix: str, target: str,
+                            candidates: list, max_distance: int, max_results: int):
+        """DFS search with edit distance pruning."""
+        if len(candidates) >= max_results:
+            return
+
+        # If we've reached a complete word, calculate its edit distance
+        if node.is_end_of_word and node.word:
+            distance = self._simple_edit_distance(current_prefix, target)
+            if distance <= max_distance:
+                candidates.append((node.word, distance))
+
+        # Prune: if current prefix is already too different, don't continue
+        if current_prefix:
+            current_dist = self._simple_edit_distance(current_prefix, target[:len(current_prefix)])
+            if current_dist > max_distance:
+                return
+
+        # Continue DFS
+        for char, child_node in node.children.items():
+            self._edit_distance_search(child_node, current_prefix + char, target,
+                                    candidates, max_distance, max_results)
+
+    def _simple_edit_distance(self, s1: str, s2: str) -> int:
+        """Calculate simple Levenshtein edit distance between two strings."""
+        if len(s1) < len(s2):
+            return self._simple_edit_distance(s2, s1)
+
+        if len(s2) == 0:
+            return len(s1)
+
+        previous_row = list(range(len(s2) + 1))
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+
+        return previous_row[-1]

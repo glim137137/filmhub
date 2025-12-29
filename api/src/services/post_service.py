@@ -419,6 +419,7 @@ class PostService:
 
         post.updated_at = datetime.now()
         db.session.commit()
+        LogService.log_action(user_id, f"Updated post {post_id}")
 
         # Return updated post data
         return cls._build_post_dict(post_id)
@@ -454,6 +455,7 @@ class PostService:
             comment.updated_at = datetime.now()
 
         db.session.commit()
+        LogService.log_action(user_id, f"Updated comment {comment_id}")
 
         # Return updated comment data
         return cls._build_comment_dict(comment_id)

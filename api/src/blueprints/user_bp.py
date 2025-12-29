@@ -193,7 +193,7 @@ def remove_user_tag(tag_id):
 
 @user_bp.route('/users/me/tag-tips', methods=['POST'])
 @jwt_required()
-def get_recommended_user_tags():
+def get_tags_by_keyword():
     """
     Recommend tags for the authenticated user based on keyword.
 
@@ -201,7 +201,7 @@ def get_recommended_user_tags():
         { "keyword": "tagname" }
     """
     dto = request.get_json()
-    data = UserService.recommend_user_tags(get_jwt_identity(), dto)
+    data = UserService.get_tags_by_keyword(get_jwt_identity(), dto)
     # data is a list of tag names
     data = [{'name': t} for t in data]
     return jsonify(Result.success(data=data)), 200

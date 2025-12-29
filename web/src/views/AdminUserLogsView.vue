@@ -37,6 +37,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Toast Component -->
+  <Toast />
 </template>
 
 <script setup>
@@ -44,6 +47,7 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter, useRoute } from 'vue-router'
 import { getUserLogs } from '@/api/admin.js'
+import Toast from '@/components/Toast.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

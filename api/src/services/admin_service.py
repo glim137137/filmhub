@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 from flask import current_app as app
 from werkzeug.utils import secure_filename
+from services.log_service import LogService
 
 class AdminService:
 
@@ -157,6 +158,7 @@ class AdminService:
                     db.session.add(film_director)
 
         db.session.commit()
+        LogService.log_action(1, f"Admin added film {film.id}: {film.title}")  # 使用0作为admin用户ID
         return film
 
     @classmethod
@@ -276,6 +278,7 @@ class AdminService:
         db.session.delete(film)
         db.session.commit()
 
+        LogService.log_action(1, f"Admin deleted film {film_id}: {film.title}")  # 使用0作为admin用户ID
         return True
 
     @classmethod
@@ -327,7 +330,7 @@ class AdminService:
     @classmethod
     def search_films_by_title(cls, title: str, page: int = 1, per_page: int = 20):
         """
-        Search films by title with pagination.
+        Search films by title using Trie + edit distance matching with pagination.
 
         Args:
             title: str - Search keyword for film title
@@ -338,19 +341,61 @@ class AdminService:
             dict: Same structure as get_films_paginated
         """
         from services.film_service import FilmService
+        from common.uilts import Trie
 
-        # Calculate offset
+        # Get all films first
+        all_films = db.session.query(Film).all()
+
+        # Build Trie with all film titles
+        trie = Trie()
+        title_to_film = {}  # Map title to film object for quick lookup
+
+        for film in all_films:
+            trie.insert(film.title)
+            title_to_film[film.title] = film
+
+        # Search using Trie + edit distance
+        matched_titles = []
+
+        # First, try prefix matching
+        prefix_matches = trie.search_prefix(title, max_results=50)  # Get more candidates
+        matched_titles.extend(prefix_matches)
+
+        # If we need more results, use edit distance search
+        if len(matched_titles) < 50:  # Ensure we have enough candidates before pagination
+            remaining_slots = 50 - len(matched_titles)
+            edit_matches = trie.search_with_edit_distance(
+                title,
+                max_distance=3,  # Allow up to 3 edits
+                max_results=remaining_slots
+            )
+
+            # Extract titles from edit distance results
+            edit_titles = [match[0] for match in edit_matches]
+            # Add only titles not already in matched_titles
+            for edit_title in edit_titles:
+                if edit_title not in matched_titles:
+                    matched_titles.append(edit_title)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_titles = []
+        for title in matched_titles:
+            if title not in seen:
+                seen.add(title)
+                unique_titles.append(title)
+
+        # Sort by relevance (exact prefix matches first, then by title alphabetically)
+        prefix_set = set(prefix_matches)
+        unique_titles.sort(key=lambda x: (0 if x in prefix_set else 1, x))
+
+        # Apply pagination to matched results
+        total = len(unique_titles)
         offset = (page - 1) * per_page
+        paginated_titles = unique_titles[offset:offset + per_page]
 
-        # Build search query
-        search_pattern = f"%{title}%"
-        query = db.session.query(Film).filter(Film.title.ilike(search_pattern))
-
-        # Get total count for this search
-        total = query.count()
-
-        # Get paginated results
-        films = query.order_by(Film.title).offset(offset).limit(per_page).all()
+        # Get film objects for paginated results
+        films = [title_to_film[title] for title in paginated_titles if title in title_to_film]
 
         # Enrich film data
         film_dicts = []
@@ -372,12 +417,12 @@ class AdminService:
     @classmethod
     def get_users_paginated(cls, page: int = 1, per_page: int = 20, username: str = None):
         """
-        Get users with pagination for admin panel, optionally filtered by username.
+        Get users with pagination for admin panel, optionally filtered by username using Trie + edit distance matching.
 
         Args:
             page: int - Page number (1-based)
             per_page: int - Number of users per page
-            username: str - Optional username filter
+            username: str - Optional username filter (uses intelligent matching)
 
         Returns:
             dict: {
@@ -385,25 +430,77 @@ class AdminService:
                 'total': total number of users,
                 'page': current page,
                 'per_page': items per page,
-                'total_pages': total number of pages
+                'total_pages': total number of pages,
+                'search_query': search term (if provided)
             }
         """
-        # Calculate offset
-        offset = (page - 1) * per_page
+        from common.uilts import Trie
 
-        # Build query
-        query = db.session.query(User)
+        # Get all users first
+        all_users = db.session.query(User).all()
 
         if username:
-            # Case-insensitive search
-            search_pattern = f"%{username}%"
-            query = query.filter(User.username.ilike(search_pattern))
+            # Build Trie with all usernames
+            trie = Trie()
+            username_to_user = {}  # Map username to user object for quick lookup
 
-        # Get total count
-        total = query.count()
+            for user in all_users:
+                trie.insert(user.username)
+                username_to_user[user.username] = user
 
-        # Get paginated users
-        users = query.order_by(User.id.desc()).offset(offset).limit(per_page).all()
+            # Search using Trie + edit distance
+            matched_usernames = []
+
+            # First, try prefix matching
+            prefix_matches = trie.search_prefix(username, max_results=100)  # Get more candidates
+            matched_usernames.extend(prefix_matches)
+
+            # If we need more results, use edit distance search
+            if len(matched_usernames) < 100:  # Ensure we have enough candidates before pagination
+                remaining_slots = 100 - len(matched_usernames)
+                edit_matches = trie.search_with_edit_distance(
+                    username,
+                    max_distance=3,  # Allow up to 3 edits
+                    max_results=remaining_slots
+                )
+
+                # Extract usernames from edit distance results
+                edit_usernames = [match[0] for match in edit_matches]
+                # Add only usernames not already in matched_usernames
+                for edit_username in edit_usernames:
+                    if edit_username not in matched_usernames:
+                        matched_usernames.append(edit_username)
+
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_usernames = []
+            for uname in matched_usernames:
+                if uname not in seen:
+                    seen.add(uname)
+                    unique_usernames.append(uname)
+
+            # Sort by relevance (exact prefix matches first, then by username alphabetically)
+            prefix_set = set(prefix_matches)
+            unique_usernames.sort(key=lambda x: (0 if x in prefix_set else 1, x))
+
+            # Apply pagination to matched results
+            total = len(unique_usernames)
+            offset = (page - 1) * per_page
+            paginated_usernames = unique_usernames[offset:offset + per_page]
+
+            # Get user objects for paginated results
+            users = [username_to_user[uname] for uname in paginated_usernames if uname in username_to_user]
+
+            # Sort users by ID descending (maintain original order preference)
+            users.sort(key=lambda u: u.id, reverse=True)
+        else:
+            # No search filter - get all users with pagination
+            total = len(all_users)
+            offset = (page - 1) * per_page
+
+            # Sort all users by ID descending and apply pagination
+            all_users_sorted = sorted(all_users, key=lambda u: u.id, reverse=True)
+            users = all_users_sorted[offset:offset + per_page]
 
         # Convert to dicts
         user_dicts = [user.to_dict() for user in users]
@@ -483,6 +580,7 @@ class AdminService:
         # Finally delete the user
         db.session.delete(user)
         db.session.commit()
+        LogService.log_action(1, f"Admin deleted user {user_id}: {user.username}")  # 使用0作为admin用户ID
         return True
 
     @classmethod
@@ -551,6 +649,7 @@ class AdminService:
         db.session.delete(post)
         db.session.commit()
 
+        LogService.log_action(1, f"Admin deleted post {post_id} by user {post.user_id}")  # 使用0作为admin用户ID
         return True
 
     @classmethod
@@ -648,4 +747,5 @@ class AdminService:
         db.session.delete(comment)
         db.session.commit()
 
+        LogService.log_action(1, f"Admin deleted comment {comment_id} by user {comment.user_id}")  # 使用0作为admin用户ID
         return True

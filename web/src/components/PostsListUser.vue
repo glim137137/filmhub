@@ -494,10 +494,16 @@ const saveEditedComment = async () => {
     const response = await editUserContent('comment', editingComment.value, updateData)
 
     if (response.code === 1) {
-      // Update local comment data
+      // Update local comment data while preserving post_title
       const commentIndex = props.comments.findIndex(c => c.comment_id === editingComment.value)
       if (commentIndex !== -1) {
-        props.comments[commentIndex] = response.data
+        // Preserve the post_title from the existing comment data
+        const existingComment = props.comments[commentIndex]
+        const updatedComment = {
+          ...response.data,
+          post_title: existingComment.post_title
+        }
+        props.comments[commentIndex] = updatedComment
       }
 
       emit('comment-updated', response.data)

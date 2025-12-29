@@ -14,6 +14,35 @@ from services.log_service import LogService
 
 class UserService:
 
+    @staticmethod
+    def levenshtein_distance(s1: str, s2: str) -> int:
+        """
+        Calculate the Levenshtein distance between two strings.
+
+        Args:
+            s1: First string
+            s2: Second string
+        Returns:
+            int: Levenshtein distance
+        """
+        if len(s1) < len(s2):
+            return UserService.levenshtein_distance(s2, s1)
+
+        if len(s2) == 0:
+            return len(s1)
+
+        previous_row = list(range(len(s2) + 1))
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+
+        return previous_row[-1]
+
     @classmethod
     def get_user_by_id(cls, user_id: int):
         """
@@ -187,50 +216,75 @@ class UserService:
         return tag
 
     @classmethod
-    def recommend_user_tags(cls, user_id: int, dto: dict):
+    def get_tags_by_keyword(cls, user_id: int, dto: dict):
         """
-        Recommend up to 5 tags based on prefix matching and usage statistics.
+        Recommend exactly 5 tags using Trie + weighted edit distance for real-time suggestions.
 
         Args:
             user_id: int
             dto: { keyword: str }
         Returns:
-            list[str] - tag names sorted by usage frequency
+            list[str] - tag names sorted by relevance (prefix matches first, then edit distance)
         """
-        from models.relations_models import UserTag, PostTag
+        from common.uilts import Trie
 
         keyword = (dto.get('keyword') or '').strip()
         if not keyword:
             raise ValidationException(Message.KEYWORD_REQUIRED)
 
-        # Use prefix matching (case-insensitive)
-        prefix_like = f"{keyword}%"
-
-        # Find tags that start with the keyword prefix
-        matching_tags = db.session.query(Tag).filter(Tag.name.ilike(prefix_like)).all()
-
-        if not matching_tags:
+        # Get all tags
+        all_tags = db.session.query(Tag).all()
+        if not all_tags:
             return []
 
-        # Get tag usage statistics from UserTag and PostTag tables
-        tag_usage = {}
+        # Build Trie with all tags
+        trie = Trie()
+        for tag in all_tags:
+            trie.insert(tag.name)
 
-        for tag in matching_tags:
-            # Count from UserTag (user interests)
-            user_count = db.session.query(UserTag).filter(UserTag.tag_id == tag.id).count()
+        # First, try prefix matching (exact prefix matches get priority)
+        prefix_matches = trie.search_prefix(keyword, max_results=5)
 
-            # Count from PostTag (content tags)
-            post_count = db.session.query(PostTag).filter(PostTag.tag_id == tag.id).count()
+        candidates = []
+        used_tags = set()
 
-            # Total usage count
-            total_usage = user_count + post_count
-            tag_usage[tag.name] = total_usage
+        # Add prefix matches with highest priority
+        for tag_name in prefix_matches:
+            candidates.append({
+                'name': tag_name,
+                'priority': 0,  # Prefix matches have highest priority
+                'distance': 0
+            })
+            used_tags.add(tag_name)
 
-        # Sort tags by total usage count (descending), then by name (ascending)
-        sorted_tags = sorted(tag_usage.items(), key=lambda x: (-x[1], x[0]))
+        # If we need more suggestions, use edit distance search
+        if len(candidates) < 5:
+            remaining_slots = 5 - len(candidates)
 
-        # Return up to 5 tag names
-        return [tag_name for tag_name, _ in sorted_tags[:5]]
+            # Search for similar words with edit distance
+            edit_matches = trie.search_with_edit_distance(
+                keyword,
+                max_distance=3,  # Allow up to 2 edits
+                max_results=remaining_slots * 2  # Get more candidates to filter
+            )
+
+            # Filter out already used tags and add remaining
+            for tag_name, distance in edit_matches:
+                if tag_name not in used_tags:
+                    candidates.append({
+                        'name': tag_name,
+                        'priority': 1,  # Edit distance matches have lower priority
+                        'distance': distance
+                    })
+                    used_tags.add(tag_name)
+                    if len(candidates) >= 5:
+                        break
+
+        # Sort: prefix matches first, then by edit distance, then alphabetically
+        candidates.sort(key=lambda x: (x['priority'], x['distance'], x['name']))
+
+        # Return exactly 5 tag names
+        return [candidate['name'] for candidate in candidates[:5]]
 
     @classmethod
     def remove_tag_from_user(cls, user_id: int, tag_id: int):
@@ -246,6 +300,7 @@ class UserService:
         if rel:
             db.session.delete(rel)
             db.session.commit()
+            LogService.log_action(user_id, f"Removed tag {tag_id} successfully")
         else:
             raise ValidationException(Message.TAG_NOT_FOUND)
 

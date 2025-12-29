@@ -18,6 +18,7 @@ import AdminFilmAddView from '@/views/AdminFilmAddView.vue'
 import AdminLogsView from '@/views/AdminLogsView.vue'
 import AdminUserLogsView from '@/views/AdminUserLogsView.vue'
 import { useAuthStore } from '@/stores/auth.js'
+import toastManager from '@/api/toastManager.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -142,16 +143,36 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
+  // Initialize auth state if not already done
+  authStore.initializeAuth()
+
   // Check if route requires authentication
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    // Redirect to login if not authenticated
-    next({ name: 'login' })
-    return
+  if (to.meta.requiresAuth) {
+    // Check if token exists and is not expired
+    if (!authStore.token || authStore.isTokenExpired()) {
+      // Clear invalid token
+      if (authStore.token && authStore.isTokenExpired()) {
+        authStore.logout()
+        toastManager.showWarning('Login expired, please login again')
+      }
+      // Only allow login/register pages when not authenticated
+      if (to.name !== 'login' && to.name !== 'register') {
+        next({ name: 'login' })
+        return
+      }
+    }
   }
 
   // Check if route requires admin access
   if (to.meta.requiresAdmin && authStore.username !== 'admin') {
     // Redirect to home if not admin
+    next({ name: 'home' })
+    return
+  }
+
+  // If user is authenticated and trying to access login/register, redirect to home
+  if (authStore.isAuthenticated && !authStore.isTokenExpired() &&
+      (to.name === 'login' || to.name === 'register')) {
     next({ name: 'home' })
     return
   }

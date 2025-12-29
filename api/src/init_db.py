@@ -14,6 +14,7 @@ from config import DB_URL
 from db import db
 from models.core_models import *
 from models.relations_models import *
+from models.relations_models import PostLike
 
 CSV_DIR = os.path.join(BASE_DIR, 'db', 'data', 'csv')
 
@@ -89,11 +90,15 @@ def init_database():
                     password = hash_password('defaultpassword')
 
                 # Parse datetime
-                created_at = datetime.fromisoformat(row['created_at']) if row.get('created_at') else datetime.utcnow()
-                updated_at = datetime.fromisoformat(row['updated_at']) if row.get('updated_at') else datetime.utcnow()
+                created_at = datetime.fromisoformat(row['created_at']) if row.get('created_at') else datetime.now()
+                updated_at = datetime.fromisoformat(row['updated_at']) if row.get('updated_at') else datetime.now()
+
+                # Shift user IDs by 1 since admin takes ID 1
+                original_id = int(row['id'])
+                shifted_id = original_id + 1
 
                 return User(
-                    id=int(row['id']),
+                    id=shifted_id,
                     username=row['username'],
                     email=row['email'],
                     password=password,
@@ -111,7 +116,7 @@ def init_database():
         # Create admin account
         admin_password = hash_password("@Adminadmin10")
         admin_user = User(
-            id=148,  # Use a high ID to avoid conflict with CSV users
+            id=1,  # Admin uses ID 1, other IDs shifted accordingly
             username="admin",
             email="admin@qq.com",
             password=admin_password,
@@ -203,12 +208,16 @@ def init_database():
         def post_mapper(row):
             try:
                 # Parse datetime
-                created_at = datetime.fromisoformat(row['created_at']) if row.get('created_at') else datetime.utcnow()
-                updated_at = datetime.fromisoformat(row['updated_at']) if row.get('updated_at') else datetime.utcnow()
+                created_at = datetime.fromisoformat(row['created_at']) if row.get('created_at') else datetime.now()
+                updated_at = datetime.fromisoformat(row['updated_at']) if row.get('updated_at') else datetime.now()
+
+                # Shift user_id by 1 since admin takes ID 1
+                original_user_id = int(row['user_id'])
+                shifted_user_id = original_user_id + 1
 
                 return Post(
                     id=int(row['id']),
-                    user_id=int(row['user_id']),
+                    user_id=shifted_user_id,
                     title=row['title'],
                     like_count=int(row['like_count']),
                     content=row.get('content') or '',
@@ -225,12 +234,16 @@ def init_database():
         def comment_mapper(row):
             try:
                 # Parse datetime
-                created_at = datetime.fromisoformat(row['created_at']) if row.get('created_at') else datetime.utcnow()
-                updated_at = datetime.fromisoformat(row['updated_at']) if row.get('updated_at') else datetime.utcnow()
+                created_at = datetime.fromisoformat(row['created_at']) if row.get('created_at') else datetime.now()
+                updated_at = datetime.fromisoformat(row['updated_at']) if row.get('updated_at') else datetime.now()
+
+                # Shift user_id by 1 since admin takes ID 1
+                original_user_id = int(row['user_id'])
+                shifted_user_id = original_user_id + 1
 
                 return Comment(
                     id=int(row['id']),
-                    user_id=int(row['user_id']),
+                    user_id=shifted_user_id,
                     content=row['content'],
                     created_at=created_at,
                     updated_at=updated_at
@@ -272,9 +285,13 @@ def init_database():
         # Load user-tag relationships
         def user_tag_mapper(row):
             try:
+                # Shift user_id by 1 since admin takes ID 1
+                original_user_id = int(row['user_id'])
+                shifted_user_id = original_user_id + 1
+
                 return UserTag(
                     id=int(row['id']),
-                    user_id=int(row['user_id']),
+                    user_id=shifted_user_id,
                     tag_id=int(row['tag_id'])
                 )
             except Exception:
@@ -311,10 +328,14 @@ def init_database():
         # Load film ratings
         def film_rating_mapper(row):
             try:
+                # Shift user_id by 1 since admin takes ID 1
+                original_user_id = int(row['user_id'])
+                shifted_user_id = original_user_id + 1
+
                 return FilmRating(
                     id=int(row['id']),
                     film_id=int(row['film_id']),
-                    user_id=int(row['user_id']),
+                    user_id=shifted_user_id,
                     rating=float(row['rating'])
                 )
             except Exception:
@@ -325,10 +346,14 @@ def init_database():
         # Load film favorites (may be empty)
         def film_favorite_mapper(row):
             try:
+                # Shift user_id by 1 since admin takes ID 1
+                original_user_id = int(row['user_id'])
+                shifted_user_id = original_user_id + 1
+
                 return FilmFavorite(
                     id=int(row['id']),
                     film_id=int(row['film_id']),
-                    user_id=int(row['user_id'])
+                    user_id=shifted_user_id
                 )
             except Exception:
                 return None
@@ -350,6 +375,9 @@ def init_database():
 
         # Print statistics
         print("\nDatabase record statistics:")
+
+        # Core tables
+        print("Core Tables:")
         print(f"Users: {db.session.query(User).count()} records")
         print(f"Tags: {db.session.query(Tag).count()} records")
         print(f"Films: {db.session.query(Film).count()} records")
@@ -357,8 +385,18 @@ def init_database():
         print(f"Directors: {db.session.query(Director).count()} records")
         print(f"Posts: {db.session.query(Post).count()} records")
         print(f"Comments: {db.session.query(Comment).count()} records")
+        print(f"Logs: {db.session.query(Log).count()} records")
+
+        # Relationship tables
+        print("\nRelationship Tables:")
+        print(f"User Tags: {db.session.query(UserTag).count()} records")
+        print(f"Film Genres: {db.session.query(FilmGenre).count()} records")
+        print(f"Film Directors: {db.session.query(FilmDirector).count()} records")
+        print(f"Post Tags: {db.session.query(PostTag).count()} records")
         print(f"Film Ratings: {db.session.query(FilmRating).count()} records")
         print(f"Film Favorites: {db.session.query(FilmFavorite).count()} records")
+        print(f"Post Comments: {db.session.query(PostComment).count()} records")
+        print(f"Post Likes: {db.session.query(PostLike).count()} records")
 
 if __name__ == '__main__':
     init_database()
