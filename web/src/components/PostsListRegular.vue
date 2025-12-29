@@ -183,6 +183,9 @@
                 class="tag-input"
                 placeholder="Enter a tag..."
                 @keydown.enter.prevent="addTag"
+                @input="handleTagInput"
+                @focus="showTagSuggestions = tagSuggestions.length > 0"
+                @keydown.escape="hideTagSuggestions"
               />
               <button
                 type="button"
@@ -192,6 +195,18 @@
               >
                 +
               </button>
+            </div>
+
+            <!-- Tag Suggestions -->
+            <div v-if="showTagSuggestions && tagSuggestions.length > 0" class="tag-suggestions">
+              <div
+                v-for="suggestion in tagSuggestions"
+                :key="suggestion.name"
+                class="tag-suggestion-item"
+                @click="addSuggestedTag(suggestion.name)"
+              >
+                #{{ suggestion.name }}
+              </div>
             </div>
           </div>
           <div class="create-post-modal-actions">
@@ -211,6 +226,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import http from '@/api/http'
 import { useAuthStore } from '@/stores/auth.js'
 import toastManager from '@/api/toastManager'
+import { searchTags } from '@/api/user.js'
 
 // Props
 const props = defineProps({
@@ -268,6 +284,11 @@ const newPost = ref({
   content: '',
   tags: [] // Array of {name: string, isDefault: boolean}
 })
+
+// Tag suggestions
+const tagSuggestions = ref([])
+const showTagSuggestions = ref(false)
+let tagSearchTimeout = null
 
 // Sorting state
 const currentSortBy = ref('time') // 'time' or 'likes'
@@ -599,6 +620,14 @@ const closeCreatePostModal = () => {
     tags: []
   }
   currentTagInput.value = ''
+  tagSuggestions.value = []
+  showTagSuggestions.value = false
+
+  // Clear any pending search timeout
+  if (tagSearchTimeout) {
+    clearTimeout(tagSearchTimeout)
+    tagSearchTimeout = null
+  }
 }
 
 const submitPost = async () => {
@@ -667,6 +696,60 @@ const addTag = () => {
 
 const removeTag = (tagName) => {
   newPost.value.tags = newPost.value.tags.filter(tag => tag.name !== tagName)
+}
+
+// Tag suggestions functions
+const handleTagInput = async () => {
+  const query = currentTagInput.value.trim()
+
+  // Clear previous timeout
+  if (tagSearchTimeout) {
+    clearTimeout(tagSearchTimeout)
+  }
+
+  if (!query) {
+    tagSuggestions.value = []
+    showTagSuggestions.value = false
+    return
+  }
+
+  // Debounce search requests
+  tagSearchTimeout = setTimeout(async () => {
+    try {
+      const response = await searchTags(query)
+      if (response.code === 1) {
+        tagSuggestions.value = (response.data || []).slice(0, 5) // Limit to 5 suggestions
+        showTagSuggestions.value = tagSuggestions.value.length > 0
+      }
+    } catch (error) {
+      console.error('Failed to search tags:', error)
+      tagSuggestions.value = []
+      showTagSuggestions.value = false
+    }
+  }, 300)
+}
+
+const addSuggestedTag = (tagName) => {
+  // Check if tag already exists
+  if (newPost.value.tags.some(tag => tag.name === tagName)) {
+    showToast('Tag already added', 'warning')
+    return
+  }
+
+  // Add tag
+  newPost.value.tags.push({
+    name: tagName,
+    isDefault: false
+  })
+
+  // Clear input and suggestions
+  currentTagInput.value = ''
+  tagSuggestions.value = []
+  showTagSuggestions.value = false
+}
+
+const hideTagSuggestions = () => {
+  showTagSuggestions.value = false
 }
 
 // Initialize default tags when modal opens
@@ -794,10 +877,27 @@ const formatTimestamp = (ts) => {
 .comment { display:flex; gap:0.5rem; margin-top:0.5rem; }
 .comment-body { color:#ddd; }
 .comment-timestamp { color:#888; font-size:0.8rem; margin-top:0.125rem; }
-.post-actions { display:flex; gap:0.5rem; margin-top:0.5rem; align-items:center; }
+.post-actions {
+  display:flex;
+  gap:0.5rem;
+  margin-top:0.5rem;
+  align-items:center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.post-actions::-webkit-scrollbar {
+  display: none;
+}
 .action-btn { background: transparent; border: none; padding: 0.25rem; cursor: pointer; display: inline-flex; align-items: center; }
 .action-btn .icon { width:20px; height:20px; display:block; }
-.action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .post-actions {
+    /* On mobile, allow horizontal scrolling for action buttons */
+    padding-bottom: 0.25rem;
+  }
 .like-count {color:#ccc; font-weight:500; }
 .comment-user { display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; }
 .comment-user-left { display:flex; flex-direction:column; }
@@ -1003,6 +1103,7 @@ const formatTimestamp = (ts) => {
   max-width: 500px;
   width: 90%;
   max-height: 82vh;
+  overflow-y: auto;
   /* Hide scrollbar */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1203,6 +1304,32 @@ const formatTimestamp = (ts) => {
   opacity: 0.6;
 }
 
+/* Tag Suggestions */
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.tag-suggestion-item {
+  background-color: #3552b0;
+  color: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.tag-suggestion-item:hover {
+  background-color: #2a4193;
+  transform: translateY(-1px);
+}
+
 /* Mobile: below title positioning */
 @media (max-width: 768px) {
   .sorting-buttons-fixed {
@@ -1245,6 +1372,16 @@ const formatTimestamp = (ts) => {
     width: 28px;
     height: 28px;
     font-size: 1em;
+  }
+
+  .tag-suggestions {
+    padding: 0.4rem;
+    gap: 0.4rem;
+  }
+
+  .tag-suggestion-item {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
   }
 }
 </style>
