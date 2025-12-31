@@ -2,7 +2,7 @@ from models.core_models import Film, Genre, Director
 from models.relations_models import FilmGenre, FilmDirector, FilmRating, FilmFavorite
 from flask import current_app as app
 from db import db
-from common.uilts import SearchUtils
+from common.uilts import FilmTrie
 from common.validation import FilmValidation
 from common.exception import ValidationException
 from models.core_models import Tag
@@ -80,13 +80,14 @@ class FilmService:
     @classmethod
     def get_film_by_keyword(cls, dto: dict, user_id=None):
         """
-        Search films by keyword using SearchUtils scoring.
+        Search films by keyword using FilmTrie with edit distance.
+        Searches across title, director, and year fields.
 
         Args:
             dto: { keyword: str }
             user_id: optional int for personalization
         Returns:
-            list of enriched film dicts with score
+            list of enriched film dicts with search_score
         """
         try:
             FilmValidation.v_search_dto(dto)
@@ -94,26 +95,28 @@ class FilmService:
             raise ValidationException(str(e))
 
         keyword = (dto.get('keyword') or '').strip()
-        search_meta = SearchUtils.tokens_from_keyword(keyword)
+        if not keyword:
+            return []
 
-        # fetch candidates (small DB assumption). If DB large, replace with filtered query.
+        # Create and populate FilmTrie
+        film_trie = FilmTrie()
+
+        # Fetch all films and enrich with director/year data
         candidates = Film.query.all()
         if not candidates:
             return []
 
-        # precompute max vote for normalization
-        max_vote = max((c.vote_count or 0) for c in candidates) or 1
-
-        scored = []
         for f in candidates:
-            # get directors
+            # Get directors
             dir_rows = db.session.query(Director.name).join(FilmDirector, Director.id == FilmDirector.director_id).filter(FilmDirector.film_id == f.id).all()
             directors = [d[0] for d in dir_rows] if dir_rows else []
-            # get genres
+
+            # Get genres (for completeness, though not used in search)
             gen_rows = db.session.query(Genre.name).join(FilmGenre, Genre.id == FilmGenre.genre_id).filter(FilmGenre.film_id == f.id).all()
             genres = [g[0] for g in gen_rows] if gen_rows else []
-            # candidate dict
-            cand = {
+
+            # Prepare film data for trie
+            film_data = {
                 'id': f.id,
                 'title': f.title or '',
                 'directors': directors,
@@ -122,23 +125,23 @@ class FilmService:
                 'rating': (f.rating or 0.0),
                 'vote_count': (f.vote_count or 0)
             }
-            score = SearchUtils.score_candidate(cand, search_meta, max_vote=max_vote)
-            if score and score > 0:
-                # include film dict plus score
-                item = f.to_dict()
-                item['score'] = score
-                scored.append(item)
 
-        # sort by score desc and return top 10 (enriched)
-        scored.sort(key=lambda x: x.get('score', 0), reverse=True)
+            # Insert into trie
+            film_trie.insert_film(film_data)
+
+        # Search using trie
+        search_results = film_trie.search_films(keyword, max_edit_distance=2, max_results=10)
+
+        # Enrich results with full film data
         enriched = []
-        for item in scored[:10]:
-            fid = item.get('id')
+        for result in search_results:
+            fid = result.get('id')
             film_obj = db.session.query(Film).get(fid)
             if film_obj:
                 fdict = cls._enrich_film_dict(film_obj, user_id=user_id)
-                fdict['score'] = item.get('score')
+                fdict['search_score'] = result.get('search_score', 0)
                 enriched.append(fdict)
+
         return enriched
 
 

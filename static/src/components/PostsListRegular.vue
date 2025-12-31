@@ -6,16 +6,18 @@
         <button
           :class="['sort-btn time-btn', { active: currentSortBy === 'time' }]"
           @click="setSortBy('time')"
-          title="Sort by time"
+          title="Sort by time (Alt+T)"
         >
           Time {{ currentSortBy === 'time' ? (currentSortOrder === 'desc' ? '↓' : '↑') : '' }}
+          <span class="shortcut-hint">(Alt+T)</span>
         </button>
         <button
           :class="['sort-btn heat-btn', { active: currentSortBy === 'likes' }]"
           @click="setSortBy('likes')"
-          title="Sort by likes"
+          title="Sort by likes (Alt+H)"
         >
           Heat {{ currentSortBy === 'likes' ? (currentSortOrder === 'desc' ? '↓' : '↑') : '' }}
+          <span class="shortcut-hint">(Alt+H)</span>
         </button>
       </div>
 
@@ -69,7 +71,7 @@
             </div>
             <!-- Comment input area -->
             <div v-if="openReplies[post.post_id]" class="comment-area">
-              <textarea v-model="newCommentText[post.post_id]" class="comment-input" rows="3" placeholder="Write a comment..."></textarea>
+              <textarea v-model="newCommentText[post.post_id]" class="comment-input" rows="3" placeholder="Write a comment..." aria-label="Write a comment"></textarea>
               <div class="comment-actions">
                 <button class="action-btn submit-comment" @click="submitComment(post)">Submit</button>
               </div>
@@ -119,8 +121,9 @@
     </div>
 
     <!-- Floating Create Post Button -->
-    <button class="floating-create-btn" @click="openCreatePostModal" aria-label="Create Post">
+    <button class="floating-create-btn" @click="openCreatePostModal" aria-label="Create Post (Alt+P)" title="Create Post (Alt+P)">
       <img src="/message-circle.svg" alt="Create Post" class="create-icon" />
+      <span class="floating-shortcut-hint">(Alt+P)</span>
     </button>
 
     <!-- Create Post Modal -->
@@ -136,6 +139,7 @@
               type="text"
               class="form-input"
               placeholder="Enter post title..."
+              aria-label="Post title"
               required
             />
           </div>
@@ -147,6 +151,7 @@
               class="form-textarea"
               rows="4"
               placeholder="Write your post content..."
+              aria-label="Post content"
               required
             ></textarea>
           </div>
@@ -182,6 +187,7 @@
                 type="text"
                 class="tag-input"
                 placeholder="Enter a tag..."
+                aria-label="Enter a tag"
                 @keydown.enter.prevent="addTag"
                 @input="handleTagInput"
                 @focus="showTagSuggestions = tagSuggestions.length > 0"
@@ -222,7 +228,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import http from '@/api/http'
 import { useAuthStore } from '@/stores/auth.js'
 import toastManager from '@/api/toastManager'
@@ -293,6 +299,25 @@ let tagSearchTimeout = null
 // Sorting state
 const currentSortBy = ref('time') // 'time' or 'likes'
 const currentSortOrder = ref('desc') // 'asc' or 'desc'
+
+// Keyboard shortcuts handler
+const handleKeydown = (event) => {
+  // Alt + T for time sorting
+  if (event.altKey && event.key.toLowerCase() === 't') {
+    event.preventDefault()
+    setSortBy('time')
+  }
+  // Alt + H for heat sorting
+  if (event.altKey && event.key.toLowerCase() === 'h') {
+    event.preventDefault()
+    setSortBy('likes')
+  }
+  // Alt + P for create post
+  if (event.altKey && event.key.toLowerCase() === 'p') {
+    event.preventDefault()
+    openCreatePostModal()
+  }
+}
 
 // Helper functions using global toast manager
 const showToast = (message, type = 'info', duration = 3000) => {
@@ -786,6 +811,15 @@ const formatTimestamp = (ts) => {
     return ts
   }
 }
+
+// Lifecycle hooks for keyboard shortcuts
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <style scoped>
@@ -1052,6 +1086,15 @@ const formatTimestamp = (ts) => {
   box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.3);
 }
 
+.shortcut-hint {
+  display: block;
+  font-size: 0.6rem;
+  margin-top: 2px;
+  opacity: 0.8;
+  font-weight: normal;
+  text-align: center;
+}
+
 /* Floating Create Post Button */
 .floating-create-btn {
   position: fixed;
@@ -1075,6 +1118,22 @@ const formatTimestamp = (ts) => {
   background: #2a4193;
   transform: scale(1.1);
   box-shadow: 0 6px 16px rgba(53, 82, 176, 0.4);
+}
+
+.floating-shortcut-hint {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: #cccccc;
+  opacity: 0.8;
+  font-weight: normal;
+  white-space: nowrap;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 2px 4px;
+  border-radius: 3px;
+  pointer-events: none;
 }
 
 .create-icon {

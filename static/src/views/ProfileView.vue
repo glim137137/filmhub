@@ -19,8 +19,9 @@
             <p class="user-bio empty" v-else>No bio yet</p>
           </div>
         </div>
-        <button class="settings-btn" @click="goToSettings" aria-label="Settings">
+        <button class="settings-btn" @click="goToSettings" aria-label="Settings (Alt+S)" title="Settings (Alt+S)">
           <img src="/settings.svg" alt="Settings" class="settings-icon" />
+          <span class="shortcut-hint">(Alt+S)</span>
         </button>
       </div>
     </section>
@@ -173,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter } from 'vue-router'
 import MovieCard from '@/components/MovieCard.vue'
@@ -216,6 +217,15 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 const currentUserId = computed(() => {
   return authStore.userId?.value || authStore.user?.id || null
 })
+
+// Keyboard shortcuts handler
+const handleKeydown = (event) => {
+  // Alt + S for settings
+  if (event.altKey && event.key.toLowerCase() === 's') {
+    event.preventDefault()
+    goToSettings()
+  }
+}
 
 // Methods
 const loadUserProfile = async () => {
@@ -511,6 +521,9 @@ const onCommentDeleted = (comment) => {
 
 // Lifecycle
 onMounted(async () => {
+  // Add keyboard shortcuts
+  window.addEventListener('keydown', handleKeydown)
+
   if (!isAuthenticated.value) {
     router.push('/login')
     return
@@ -523,6 +536,11 @@ onMounted(async () => {
     loadUserComments(),
     loadUserTags()
   ])
+})
+
+onUnmounted(() => {
+  // Remove keyboard shortcuts
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -620,6 +638,22 @@ onMounted(async () => {
   width: 24px;
   height: 24px;
   display: block;
+}
+
+.shortcut-hint {
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: #cccccc;
+  opacity: 0.8;
+  font-weight: normal;
+  white-space: nowrap;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 2px 4px;
+  border-radius: 3px;
+  pointer-events: none;
 }
 
 /* Sections */

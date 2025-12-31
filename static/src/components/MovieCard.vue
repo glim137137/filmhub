@@ -1,5 +1,5 @@
 <template>
-  <div class="movie-card">
+  <div class="movie-card" tabindex="0" @keydown="handleCardKeydown" role="button" :aria-label="`View details for ${movie.title}`" @focus="onCardFocus" @blur="onCardBlur">
     <div class="movie-poster">
       <img
         :src="getPosterUrl(movie.poster_url)"
@@ -130,6 +130,21 @@ const onImageError = (e) => {
 // Event handlers
 const onTitleClick = () => {
   emit('title-click', props.movie)
+}
+
+const onCardFocus = () => {
+  // Focus handler - could be used for additional focus behavior
+}
+
+const onCardBlur = () => {
+  // Blur handler - could be used for additional blur behavior
+}
+
+const handleCardKeydown = (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    onTitleClick()
+  }
 }
 
 const onStarClick = async () => {
@@ -308,11 +323,18 @@ const handleRatingKeydown = (event) => {
   background-color: #121212;
   border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, outline 0.2s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   height: 100%;
+  outline: none;
+}
+
+.movie-card:focus-visible,
+.movie-card:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 .movie-poster {

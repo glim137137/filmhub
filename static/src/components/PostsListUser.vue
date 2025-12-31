@@ -32,6 +32,7 @@
                   v-model="editCommentData.content"
                   class="edit-input edit-comment-content"
                   placeholder="Comment content..."
+                  aria-label="Edit comment content"
                   rows="2"
                 ></textarea>
               </template>
@@ -101,6 +102,7 @@
                   v-model="editPostData.title"
                   class="edit-input edit-title"
                   placeholder="Post title..."
+                  aria-label="Edit post title"
                 />
               </template>
               <template v-else>
@@ -113,6 +115,7 @@
                   v-model="editPostData.content"
                   class="edit-input edit-content"
                   placeholder="Post content..."
+                  aria-label="Edit post content"
                   rows="4"
                 ></textarea>
               </template>
@@ -140,7 +143,7 @@
             </div>
             <!-- Comment input area -->
             <div v-if="openReplies[post.post_id]" class="comment-area">
-              <textarea v-model="newCommentText[post.post_id]" class="comment-input" rows="3" placeholder="Write a comment..."></textarea>
+              <textarea v-model="newCommentText[post.post_id]" class="comment-input" rows="3" placeholder="Write a comment..." aria-label="Write a comment"></textarea>
               <div class="comment-actions">
                 <button class="action-btn submit-comment" @click="submitComment(post)">Submit</button>
               </div>

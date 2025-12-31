@@ -13,15 +13,18 @@
             v-model="searchQuery"
             @input="handleSearchInput"
             @focus="showSuggestions = searchSuggestions.length > 0"
-            @keydown.enter="handleSearch"
-            @keydown.escape="hideSuggestions"
-            @keydown.down.prevent="navigateSuggestions(1)"
-            @keydown.up.prevent="navigateSuggestions(-1)"
+            @keydown="handleSearchKeydown"
+            tabindex="0"
+            aria-label="Search for movies (Alt+S)"
+            :aria-expanded="showSuggestions"
+            :aria-activedescendant="highlightedIndex >= 0 ? `suggestion-${highlightedIndex}` : null"
+            ref="searchInput"
           />
           <button class="search-button" @click="handleSearch">Search</button>
+          <div class="search-shortcut-hint">(Alt+S)</div>
 
           <!-- Search Suggestions Dropdown -->
-          <div v-if="showSuggestions && (searchSuggestions.length > 0 || isSearching)" class="search-suggestions">
+          <div v-if="showSuggestions && (searchSuggestions.length > 0 || isSearching)" class="search-suggestions" role="listbox" aria-label="Movie search suggestions">
             <div v-if="isSearching" class="search-loading">
               <span>Searching...</span>
             </div>
@@ -31,10 +34,13 @@
             <div
               v-for="(movie, index) in searchSuggestions"
               :key="movie.id"
+              :id="`suggestion-${index}`"
               class="suggestion-item"
               :class="{ 'highlighted': index === highlightedIndex }"
               @click="selectSuggestion(movie)"
               @mouseenter="highlightedIndex = index"
+              role="option"
+              :aria-selected="index === highlightedIndex"
             >
               <img
                 :src="getPosterUrl(movie.poster_url)"
@@ -70,19 +76,24 @@
         <div class="filters-grid">
           <!-- Genre Filter -->
           <div class="filter-group">
-            <label class="filter-label">Genre</label>
-            <div class="custom-select" @click.stop="toggleGenreDropdown" :class="{ 'active': showGenreDropdown }" tabindex="0">
+            <label class="filter-label">Genre <span class="shortcut-hint">(Alt+G)</span></label>
+            <div class="custom-select" ref="genreSelect" @click.stop="toggleGenreDropdown" @keydown="handleGenreKeydown" :class="{ 'active': showGenreDropdown }" tabindex="0" role="combobox" aria-label="Select genre (Alt+G)" :aria-expanded="showGenreDropdown" aria-haspopup="listbox">
               <div class="select-display">
                 <span>{{ getGenreDisplayText() }}</span>
                 <span class="select-arrow">▼</span>
               </div>
-              <div v-if="showGenreDropdown" class="select-dropdown">
-                <div class="dropdown-item" @click.stop="selectGenre('')">All Genres</div>
+              <div v-if="showGenreDropdown" class="select-dropdown" role="listbox">
+                <div class="dropdown-item" @click.stop="selectGenre('')" @keydown.enter="selectGenre('')" @keydown.space="selectGenre('')" tabindex="0" role="option" aria-selected="false">All Genres</div>
                 <div
                   v-for="genre in genres"
                   :key="genre.id"
                   class="dropdown-item"
                   @click.stop="selectGenre(genre.id)"
+                  @keydown.enter="selectGenre(genre.id)"
+                  @keydown.space="selectGenre(genre.id)"
+                  tabindex="0"
+                  role="option"
+                  aria-selected="false"
                 >
                   {{ genre.name }}
                 </div>
@@ -92,19 +103,24 @@
 
           <!-- Year Filter -->
           <div class="filter-group">
-            <label class="filter-label">Year</label>
-            <div class="custom-select" @click.stop="toggleYearDropdown" :class="{ 'active': showYearDropdown }" tabindex="0">
+            <label class="filter-label">Year <span class="shortcut-hint">(Alt+Y)</span></label>
+            <div class="custom-select" ref="yearSelect" @click.stop="toggleYearDropdown" @keydown="handleYearKeydown" :class="{ 'active': showYearDropdown }" tabindex="0" role="combobox" aria-label="Select year (Alt+Y)" :aria-expanded="showYearDropdown" aria-haspopup="listbox">
               <div class="select-display">
                 <span>{{ getYearDisplayText() }}</span>
                 <span class="select-arrow">▼</span>
               </div>
-              <div v-if="showYearDropdown" class="select-dropdown">
-                <div class="dropdown-item" @click.stop="selectYear('')">All Years</div>
+              <div v-if="showYearDropdown" class="select-dropdown" role="listbox">
+                <div class="dropdown-item" @click.stop="selectYear('')" @keydown.enter="selectYear('')" @keydown.space="selectYear('')" tabindex="0" role="option" aria-selected="false">All Years</div>
                 <div
                   v-for="year in years"
                   :key="year"
                   class="dropdown-item"
                   @click.stop="selectYear(year)"
+                  @keydown.enter="selectYear(year)"
+                  @keydown.space="selectYear(year)"
+                  tabindex="0"
+                  role="option"
+                  aria-selected="false"
                 >
                   {{ year }}
                 </div>
@@ -114,19 +130,24 @@
 
           <!-- Language Filter -->
           <div class="filter-group">
-            <label class="filter-label">Language</label>
-            <div class="custom-select" @click.stop="toggleLanguageDropdown" :class="{ 'active': showLanguageDropdown }" tabindex="0">
+            <label class="filter-label">Language <span class="shortcut-hint">(Alt+L)</span></label>
+            <div class="custom-select" ref="languageSelect" @click.stop="toggleLanguageDropdown" @keydown="handleLanguageKeydown" :class="{ 'active': showLanguageDropdown }" tabindex="0" role="combobox" aria-label="Select language (Alt+L)" :aria-expanded="showLanguageDropdown" aria-haspopup="listbox">
               <div class="select-display">
                 <span>{{ getLanguageDisplayText() }}</span>
                 <span class="select-arrow">▼</span>
               </div>
-              <div v-if="showLanguageDropdown" class="select-dropdown">
-                <div class="dropdown-item" @click.stop="selectLanguage('')">All Languages</div>
+              <div v-if="showLanguageDropdown" class="select-dropdown" role="listbox">
+                <div class="dropdown-item" @click.stop="selectLanguage('')" @keydown.enter="selectLanguage('')" @keydown.space="selectLanguage('')" tabindex="0" role="option" aria-selected="false">All Languages</div>
                 <div
                   v-for="lang in languages"
                   :key="lang"
                   class="dropdown-item"
                   @click.stop="selectLanguage(lang)"
+                  @keydown.enter="selectLanguage(lang)"
+                  @keydown.space="selectLanguage(lang)"
+                  tabindex="0"
+                  role="option"
+                  aria-selected="false"
                 >
                   {{ formatLanguage(lang) }}
                 </div>
@@ -177,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import MovieCard from '@/components/MovieCard.vue'
 import Toast from '@/components/Toast.vue'
@@ -197,6 +218,12 @@ const isSearching = ref(false)
 const showSuggestions = ref(false)
 const highlightedIndex = ref(-1)
 let searchTimeout = null
+
+// Refs
+const searchInput = ref(null)
+const genreSelect = ref(null)
+const yearSelect = ref(null)
+const languageSelect = ref(null)
 
 // Filters state
 const filters = ref({
@@ -220,6 +247,47 @@ const loadingMore = ref(false)
 const hasMoreMovies = ref(true)
 const currentPage = ref(0)
 const pageSize = 20
+
+// Keyboard shortcuts handler
+const handleKeydown = async (event) => {
+  // Alt + S for search input focus
+  if (event.altKey && event.key.toLowerCase() === 's') {
+    event.preventDefault()
+    if (searchInput.value) {
+      searchInput.value.focus()
+      await nextTick()
+      // Optionally clear any existing text
+      // searchQuery.value = ''
+    }
+  }
+  // Alt + G for genre filter
+  if (event.altKey && event.key.toLowerCase() === 'g') {
+    event.preventDefault()
+    if (genreSelect.value) {
+      genreSelect.value.focus()
+      await nextTick()
+      toggleGenreDropdown()
+    }
+  }
+  // Alt + Y for year filter
+  if (event.altKey && event.key.toLowerCase() === 'y') {
+    event.preventDefault()
+    if (yearSelect.value) {
+      yearSelect.value.focus()
+      await nextTick()
+      toggleYearDropdown()
+    }
+  }
+  // Alt + L for language filter
+  if (event.altKey && event.key.toLowerCase() === 'l') {
+    event.preventDefault()
+    if (languageSelect.value) {
+      languageSelect.value.focus()
+      await nextTick()
+      toggleLanguageDropdown()
+    }
+  }
+}
 
 // Initialize filters and load initial data
 const initializeFilters = () => {
@@ -329,16 +397,94 @@ const selectGenre = (genreId) => {
   applyFilters()
 }
 
+const handleGenreKeydown = (event) => {
+  switch (event.key) {
+    case 'Enter':
+    case ' ':
+      event.preventDefault()
+      if (showGenreDropdown.value) {
+        // If dropdown is open, select "All Genres" option
+        selectGenre('')
+      } else {
+        // If dropdown is closed, open it
+        toggleGenreDropdown()
+      }
+      break
+    case 'Escape':
+      event.preventDefault()
+      showGenreDropdown.value = false
+      break
+    case 'ArrowDown':
+      if (!showGenreDropdown.value) {
+        event.preventDefault()
+        showGenreDropdown.value = true
+      }
+      break
+  }
+}
+
 const selectYear = (year) => {
   filters.value.year = year
   showYearDropdown.value = false
   applyFilters()
 }
 
+const handleYearKeydown = (event) => {
+  switch (event.key) {
+    case 'Enter':
+    case ' ':
+      event.preventDefault()
+      if (showYearDropdown.value) {
+        // If dropdown is open, select "All Years" option
+        selectYear('')
+      } else {
+        // If dropdown is closed, open it
+        toggleYearDropdown()
+      }
+      break
+    case 'Escape':
+      event.preventDefault()
+      showYearDropdown.value = false
+      break
+    case 'ArrowDown':
+      if (!showYearDropdown.value) {
+        event.preventDefault()
+        showYearDropdown.value = true
+      }
+      break
+  }
+}
+
 const selectLanguage = (language) => {
   filters.value.language = language
   showLanguageDropdown.value = false
   applyFilters()
+}
+
+const handleLanguageKeydown = (event) => {
+  switch (event.key) {
+    case 'Enter':
+    case ' ':
+      event.preventDefault()
+      if (showLanguageDropdown.value) {
+        // If dropdown is open, select "All Languages" option
+        selectLanguage('')
+      } else {
+        // If dropdown is closed, open it
+        toggleLanguageDropdown()
+      }
+      break
+    case 'Escape':
+      event.preventDefault()
+      showLanguageDropdown.value = false
+      break
+    case 'ArrowDown':
+      if (!showLanguageDropdown.value) {
+        event.preventDefault()
+        showLanguageDropdown.value = true
+      }
+      break
+  }
 }
 
 const getGenreDisplayText = () => {
@@ -419,7 +565,54 @@ const handleSearch = async () => {
 const selectSuggestion = (movie) => {
   searchQuery.value = movie.title
   showSuggestions.value = false
+  highlightedIndex.value = -1
   router.push(`/films/${movie.id}`)
+}
+
+// Handle search input keyboard navigation
+const handleSearchKeydown = (event) => {
+  switch (event.key) {
+    case 'Tab':
+      // Use Tab for navigation when suggestions are shown
+      if (showSuggestions.value && searchSuggestions.value.length > 0) {
+        event.preventDefault()
+        if (event.shiftKey) {
+          // Shift+Tab goes up
+          navigateSuggestions(-1)
+        } else {
+          // Tab goes down
+          navigateSuggestions(1)
+        }
+      }
+      break
+    case 'ArrowDown':
+      event.preventDefault()
+      if (!showSuggestions.value && searchSuggestions.value.length > 0) {
+        showSuggestions.value = true
+        highlightedIndex.value = 0
+      } else if (showSuggestions.value) {
+        navigateSuggestions(1)
+      }
+      break
+    case 'ArrowUp':
+      event.preventDefault()
+      if (showSuggestions.value) {
+        navigateSuggestions(-1)
+      }
+      break
+    case 'Enter':
+      event.preventDefault()
+      if (highlightedIndex.value >= 0 && highlightedIndex.value < searchSuggestions.value.length) {
+        selectSuggestion(searchSuggestions.value[highlightedIndex.value])
+      } else {
+        handleSearch()
+      }
+      break
+    case 'Escape':
+      event.preventDefault()
+      hideSuggestions()
+      break
+  }
 }
 
 // Navigate suggestions with keyboard
@@ -532,12 +725,16 @@ onMounted(async () => {
   // Add click outside listener for search and dropdowns
   document.addEventListener('click', hideSuggestions)
   document.addEventListener('click', closeAllDropdowns)
+
+  // Add keyboard shortcuts
+  window.addEventListener('keydown', handleKeydown)
 })
 
 // Cleanup
 onUnmounted(() => {
   document.removeEventListener('click', hideSuggestions)
   document.removeEventListener('click', closeAllDropdowns)
+  window.removeEventListener('keydown', handleKeydown)
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
@@ -600,6 +797,19 @@ onUnmounted(() => {
 
 .search-button:hover {
   background-color: #1d4ed8;
+}
+
+.search-shortcut-hint {
+  font-size: 0.6rem;
+  color: #cccccc;
+  opacity: 0.8;
+  font-weight: normal;
+  white-space: nowrap;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 2px 4px;
+  border-radius: 3px;
+  align-self: center;
+  margin-left: 0.5rem;
 }
 
 .search-box {
@@ -751,6 +961,13 @@ onUnmounted(() => {
   color: #f5c518;
   font-size: 1rem;
   font-weight: 500;
+}
+
+.shortcut-hint {
+  color: #cccccc;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: normal;
 }
 
 .filter-select {

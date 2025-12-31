@@ -3,9 +3,10 @@
     <section class="search-section">
       <div class="search-content">
         <div class="search-box" @click.stop>
-          <label for="movie-search" class="sr-only">Search for movies</label>
+          <label for="movie-search" class="sr-only">Search for movies (Alt+S)</label>
           <input
             id="movie-search"
+            ref="searchInput"
             type="text"
             class="search-input"
             placeholder="Search for movies..."
@@ -24,6 +25,7 @@
             aria-describedby="search-help"
           />
           <button class="search-button" @click="handleSearch" aria-label="Search for movies">Search</button>
+          <div class="search-shortcut-hint">(Alt+S)</div>
           <div id="search-help" class="sr-only">Type to search for movies. Use arrow keys to navigate suggestions, Enter to select, Escape to close.</div>
 
           <!-- Search Suggestions Dropdown -->
@@ -188,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter } from 'vue-router'
 import MovieCard from '@/components/MovieCard.vue'
@@ -216,6 +218,9 @@ const showSuggestions = ref(false)
 const highlightedIndex = ref(-1)
 let searchTimeout = null
 
+// Search input ref
+const searchInput = ref(null)
+
 // Reactive data for API responses
 const recommendations = ref([])
 const topRatedMovies = ref([])
@@ -235,6 +240,20 @@ const userStats = ref({
 
 // Toast component reference
 const toastRef = ref(null)
+
+// Keyboard shortcuts handler
+const handleKeydown = async (event) => {
+  // Alt + S for search input focus
+  if (event.altKey && event.key.toLowerCase() === 's') {
+    event.preventDefault()
+    if (searchInput.value) {
+      searchInput.value.focus()
+      await nextTick()
+      // Optionally clear any existing text
+      // searchQuery.value = ''
+    }
+  }
+}
 
 // Check if screen is wide enough for carousel
 const isWideScreen = ref(window.innerWidth >= 1200)
@@ -486,6 +505,9 @@ onMounted(() => {
 
   // Add click outside listener
   document.addEventListener('click', hideSuggestions)
+
+  // Add keyboard shortcuts
+  window.addEventListener('keydown', handleKeydown)
 })
 
 // Cleanup on component unmount
@@ -494,6 +516,9 @@ onUnmounted(() => {
 
   // Remove click outside listener
   document.removeEventListener('click', hideSuggestions)
+
+  // Remove keyboard shortcuts
+  window.removeEventListener('keydown', handleKeydown)
 
   // Clear search timeout
   if (searchTimeout) {
@@ -584,6 +609,19 @@ watch(() => recommendations.value, (newRecommendations) => {
 
 .search-button:hover {
   background-color: #1d4ed8;
+}
+
+.search-shortcut-hint {
+  font-size: 0.6rem;
+  color: #cccccc;
+  opacity: 0.8;
+  font-weight: normal;
+  white-space: nowrap;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 2px 4px;
+  border-radius: 3px;
+  align-self: center;
+  margin-left: 0.5rem;
 }
 
 .search-box {

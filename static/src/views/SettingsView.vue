@@ -3,8 +3,9 @@
     <div class="settings-container">
       <div class="settings-header">
         <h1 class="settings-title">Settings</h1>
-        <button class="back-btn" @click="goBack" aria-label="Back to Profile">
+        <button class="back-btn" @click="goBack" aria-label="Back to Profile (Alt+B)" title="Back to Profile (Alt+B)">
           <img src="/arrow-left.svg" alt="Back" class="back-icon" />
+          <span class="shortcut-hint">(Alt+B)</span>
         </button>
       </div>
 
@@ -201,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useRouter } from 'vue-router'
 import { getUserProfile, updateUserProfile, changePassword as changePasswordApi, deleteUserAccount } from '@/api/user.js'
@@ -248,6 +249,15 @@ const deletePassword = ref('')
 
 // Toast component reference
 const toastRef = ref(null)
+
+// Keyboard shortcuts handler
+const handleKeydown = (event) => {
+  // Alt + B for back to profile
+  if (event.altKey && event.key.toLowerCase() === 'b') {
+    event.preventDefault()
+    goBack()
+  }
+}
 
 // Validation helpers
 const isValidEmail = (email) => {
@@ -528,12 +538,20 @@ const goBack = () => {
 
 // Lifecycle
 onMounted(async () => {
+  // Add keyboard shortcuts
+  window.addEventListener('keydown', handleKeydown)
+
   if (!authStore.isAuthenticated) {
     router.push('/login')
     return
   }
 
   await loadUserProfile()
+})
+
+onUnmounted(() => {
+  // Remove keyboard shortcuts
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -565,6 +583,7 @@ onMounted(async () => {
 }
 
 .back-btn {
+  position: relative;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -588,6 +607,22 @@ onMounted(async () => {
   width: 24px;
   height: 24px;
   display: block;
+}
+
+.shortcut-hint {
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: #cccccc;
+  opacity: 0.8;
+  font-weight: normal;
+  white-space: nowrap;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 2px 4px;
+  border-radius: 3px;
+  pointer-events: none;
 }
 
 /* Settings Sections */

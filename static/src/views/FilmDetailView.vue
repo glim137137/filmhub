@@ -23,6 +23,7 @@
               :disabled="!isAuthenticated"
             >
               + Watchlist
+              <span class="shortcut-hint">(Alt+W)</span>
             </button>
           </div>
 
@@ -54,7 +55,7 @@
             </div>
             <div class="rating-placeholder" @click="openRatingModal">
               <img src="/star-blue.svg" alt="rate" class="star-placeholder-icon" />
-              <span class="placeholder-text">Rate this movie</span>
+              <span class="placeholder-text">Rate this movie <span class="shortcut-hint">(Alt+S)</span></span>
             </div>
           </div>
 
@@ -124,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { getFilmById, getFilmPosts } from '@/api/film.js'
@@ -156,6 +157,20 @@ const toastRef = ref(null)
 
 // Computed
 const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+// Keyboard shortcuts handler
+const handleKeydown = (event) => {
+  // Alt + S for rating
+  if (event.altKey && event.key.toLowerCase() === 's') {
+    event.preventDefault()
+    openRatingModal()
+  }
+  // Alt + W for adding to watchlist
+  if (event.altKey && event.key.toLowerCase() === 'w') {
+    event.preventDefault()
+    addToWatchlist()
+  }
+}
 
 // Methods
 const loadFilmData = async () => {
@@ -374,8 +389,16 @@ onMounted(() => {
   window.scrollTo(0, 0)
   setTimeout(() => window.scrollTo(0, 0), 0)
 
+  // Add keyboard shortcuts
+  window.addEventListener('keydown', handleKeydown)
+
   loadFilmData()
   loadPosts(0, false)
+})
+
+onUnmounted(() => {
+  // Remove keyboard shortcuts
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -490,6 +513,13 @@ onMounted(() => {
   opacity: 0.8;
 }
 
+.shortcut-hint {
+  color: #cccccc;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-weight: normal;
+}
+
 /* Movie Header */
 .movie-header {
   display: flex;
@@ -520,6 +550,13 @@ onMounted(() => {
 .watchlist-btn-header:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.watchlist-btn-header .shortcut-hint {
+  display: block;
+  font-size: 0.7rem;
+  margin-top: 2px;
+  opacity: 0.8;
 }
 
 /* Rating Block */

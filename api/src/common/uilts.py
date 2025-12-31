@@ -61,154 +61,6 @@ class JWTUtils:
         except Exception:
             return None
 
-class SearchUtils:
-    # small English stopword list; extend as needed
-    STOPWORDS = {
-        'the', 'and', 'is', 'in', 'at', 'of', 'a', 'an', 'to', 'for', 'on', 'with', 'by', 'from', 'as', 'that', 'this'
-    }
-
-    @staticmethod
-    def normalize_text(text: str) -> str:
-        if not text:
-            return ''
-        # lowercase and replace non-alphanumeric with spaces
-        cleaned = re.sub(r'[^a-z0-9\s]', ' ', text.lower())
-        # collapse whitespace
-        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-        return cleaned
-
-    @staticmethod
-    def tokenize(text: str):
-        """Return list of tokens after removing stopwords."""
-        cleaned = SearchUtils.normalize_text(text or '')
-        if not cleaned:
-            return []
-        tokens = [t for t in cleaned.split(' ') if t and t not in SearchUtils.STOPWORDS]
-        return tokens
-
-    @staticmethod
-    def extract_years(text: str):
-        """Find 4-digit years (1900-2099) in text and return as list of ints."""
-        if not text:
-            return []
-        years = []
-        for m in re.findall(r'\b(19|20)\d{2}\b', text):
-            # re.findall with group returns the group; use a second findall for full match
-            pass
-        # simpler: use full-match findall
-        for y in re.findall(r'\b(?:19|20)\d{2}\b', text):
-            try:
-                yi = int(y)
-                years.append(yi)
-            except Exception:
-                continue
-        return years
-
-    @staticmethod
-    def tokens_from_keyword(keyword: str):
-        """Run full preprocessing: normalize, tokenize, extract years, return structure."""
-        raw = (keyword or '').strip()
-        normalized = SearchUtils.normalize_text(raw)
-        tokens = SearchUtils.tokenize(raw)
-        years = SearchUtils.extract_years(raw)
-        return {
-            'raw': raw,
-            'normalized': normalized,
-            'tokens': tokens,
-            'years': years
-        }
-
-    @staticmethod
-    def fuzzy_score(a: str, b: str) -> float:
-        """Return fuzzy similarity between 0 and 1."""
-        if not a or not b:
-            return 0.0
-        a_n = SearchUtils.normalize_text(a)
-        b_n = SearchUtils.normalize_text(b)
-        try:
-            return difflib.SequenceMatcher(None, a_n, b_n).ratio()
-        except Exception:
-            return 0.0
-
-    @staticmethod
-    def token_overlap_score(query_tokens, target_text) -> float:
-        """Compute token overlap ratio in [0,1]."""
-        if not query_tokens:
-            return 0.0
-        target_tokens = set(SearchUtils.tokenize(target_text or ''))
-        if not target_tokens:
-            return 0.0
-        matches = sum(1 for t in query_tokens if t in target_tokens)
-        return matches / len(query_tokens)
-
-    @staticmethod
-    def score_candidate(candidate: dict, search_meta: dict, max_vote: int = 1) -> float:
-        """
-        Score a single candidate film.
-        candidate: { title, directors: [..], genres: [..], year (int|None), rating (float|None), vote_count (int|None) }
-        search_meta: result of tokens_from_keyword
-        max_vote: used to normalize popularity
-        Returns float score (higher better).
-        """
-        weights = {
-            'title': 0.60,
-            'director': 0.15,
-            'genre': 0.15,
-            'year': 0.10,
-            'rating': 0.10,
-            'popularity': 0.10
-        }
-        q_tokens = search_meta.get('tokens', [])
-        raw = search_meta.get('raw', '')
-        years = search_meta.get('years', [])
-
-        # title score: fuzzy OR token overlap
-        title = candidate.get('title') or ''
-        title_fuzzy = SearchUtils.fuzzy_score(raw, title)
-        title_overlap = SearchUtils.token_overlap_score(q_tokens, title)
-        title_score = max(title_fuzzy, title_overlap)
-
-        # director score: best match across directors
-        director_score = 0.0
-        for d in (candidate.get('directors') or []):
-            director_score = max(director_score, SearchUtils.fuzzy_score(raw, d) or 0.0)
-
-        # genre score: check overlap between query tokens and genre names
-        genre_score = 0.0
-        for g in (candidate.get('genres') or []):
-            genre_score = max(genre_score, SearchUtils.token_overlap_score(q_tokens, g), SearchUtils.fuzzy_score(raw, g))
-
-        # year score: if user provided any year and it matches candidate year
-        year_score = 0.0
-        cand_year = candidate.get('year')
-        if cand_year and years:
-            # if any extracted year equals candidate year, full match
-            year_score = 1.0 if any(int(y) == int(cand_year) for y in years) else 0.0
-
-        # rating normalized [0,1] assuming rating up to 10
-        rating = candidate.get('rating') or 0.0
-        rating_score = max(0.0, min(1.0, float(rating) / 10.0))
-
-        # popularity normalized by max_vote
-        vote = candidate.get('vote_count') or 0
-        try:
-            pop_score = (vote / max_vote) if max_vote and max_vote > 0 else 0.0
-            # soften with sqrt
-            pop_score = math.sqrt(pop_score) if pop_score > 0 else 0.0
-        except Exception:
-            pop_score = 0.0
-
-        final = (
-            title_score * weights['title'] +
-            director_score * weights['director'] +
-            genre_score * weights['genre'] +
-            year_score * weights['year'] +
-            rating_score * weights['rating'] +
-            pop_score * weights['popularity']
-        )
-        return float(final)
-
-
 class TrieNode:
     """Node for Trie data structure."""
 
@@ -306,6 +158,204 @@ class Trie:
         for char, child_node in node.children.items():
             self._edit_distance_search(child_node, current_prefix + char, target,
                                     candidates, max_distance, max_results)
+
+    def _simple_edit_distance(self, s1: str, s2: str) -> int:
+        """Calculate simple Levenshtein edit distance between two strings."""
+        if len(s1) < len(s2):
+            return self._simple_edit_distance(s2, s1)
+
+        if len(s2) == 0:
+            return len(s1)
+
+        previous_row = list(range(len(s2) + 1))
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+
+        return previous_row[-1]
+
+
+class FilmTrieNode:
+    """Node for Film Trie data structure."""
+
+    def __init__(self):
+        self.children = {}
+        self.is_end_of_word = False
+        self.films = []  # Store film IDs that match this word/prefix
+
+
+class FilmTrie:
+    """Trie for film search with title, director, and year matching."""
+
+    def __init__(self):
+        self.root = FilmTrieNode()
+        self.films_data = {}  # Store film data by ID
+
+    def insert_film(self, film_data: dict):
+        """Insert a film into the trie with its searchable fields."""
+        film_id = film_data.get('id')
+        if not film_id:
+            return
+
+        # Store film data
+        self.films_data[film_id] = film_data
+
+        # Index searchable fields
+        searchable_fields = []
+
+        # Title
+        title = film_data.get('title', '')
+        if title:
+            searchable_fields.append(('title', title))
+
+        # Directors
+        directors = film_data.get('directors', [])
+        for director in directors:
+            if director:
+                searchable_fields.append(('director', director))
+
+        # Year
+        year = film_data.get('year')
+        if year:
+            searchable_fields.append(('year', str(year)))
+
+        # Insert each field into trie
+        for field_type, text in searchable_fields:
+            self._insert_text(text.lower(), film_id, field_type)
+
+    def _insert_text(self, text: str, film_id: int, field_type: str):
+        """Insert text into trie with film reference."""
+        if not text:
+            return
+
+        node = self.root
+        for char in text:
+            if char not in node.children:
+                node.children[char] = FilmTrieNode()
+            node = node.children[char]
+
+        node.is_end_of_word = True
+        if film_id not in node.films:
+            node.films.append(film_id)
+
+    def search_films(self, keyword: str, max_edit_distance: int = 2, max_results: int = 10) -> list:
+        """
+        Search films using Trie + edit distance.
+        Returns list of film data sorted by relevance.
+        """
+        if not keyword:
+            return []
+
+        keyword_lower = keyword.lower()
+        candidates = set()
+
+        # Find exact prefix matches
+        exact_matches = self._find_exact_matches(keyword_lower)
+        candidates.update(exact_matches)
+
+        # Find edit distance matches
+        edit_matches = self._find_edit_distance_matches(keyword_lower, max_edit_distance)
+        candidates.update(edit_matches)
+
+        # Get film data and score results
+        results = []
+        for film_id in candidates:
+            if film_id in self.films_data:
+                film_data = self.films_data[film_id].copy()
+                score = self._calculate_relevance_score(film_data, keyword_lower)
+                if score > 0:
+                    film_data['search_score'] = score
+                    results.append(film_data)
+
+        # Sort by relevance score
+        results.sort(key=lambda x: x.get('search_score', 0), reverse=True)
+        return results[:max_results]
+
+    def _find_exact_matches(self, keyword: str) -> set:
+        """Find films with exact prefix matches."""
+        candidates = set()
+
+        # Navigate to keyword end
+        node = self.root
+        for char in keyword:
+            if char not in node.children:
+                return candidates
+            node = node.children[char]
+
+        # Collect all films from this prefix
+        self._collect_films_from_node(node, candidates)
+        return candidates
+
+    def _find_edit_distance_matches(self, keyword: str, max_distance: int) -> set:
+        """Find films using edit distance search."""
+        candidates = set()
+        self._edit_distance_search(self.root, "", keyword, candidates, max_distance)
+        return candidates
+
+    def _edit_distance_search(self, node: FilmTrieNode, current_prefix: str, target: str,
+                            candidates: set, max_distance: int):
+        """DFS search with edit distance pruning."""
+        # If we've reached a complete word, add its films
+        if node.is_end_of_word:
+            distance = self._simple_edit_distance(current_prefix, target)
+            if distance <= max_distance:
+                candidates.update(node.films)
+
+        # Prune: if current prefix is already too different, don't continue
+        if current_prefix:
+            current_dist = self._simple_edit_distance(current_prefix, target[:len(current_prefix)])
+            if current_dist > max_distance:
+                return
+
+        # Continue DFS
+        for char, child_node in node.children.items():
+            self._edit_distance_search(child_node, current_prefix + char, target,
+                                    candidates, max_distance)
+
+    def _collect_films_from_node(self, node: FilmTrieNode, candidates: set):
+        """Recursively collect all films from trie node and its children."""
+        candidates.update(node.films)
+
+        for child in node.children.values():
+            self._collect_films_from_node(child, candidates)
+
+    def _calculate_relevance_score(self, film_data: dict, keyword: str) -> float:
+        """Calculate relevance score for a film based on keyword match."""
+        score = 0.0
+        keyword_lower = keyword.lower()
+
+        # Title match (highest weight)
+        title = film_data.get('title', '').lower()
+        if keyword_lower in title:
+            score += 1.0  # Exact substring match
+        elif self._simple_edit_distance(keyword_lower, title[:len(keyword_lower)]) <= 1:
+            score += 0.8  # Close match
+
+        # Director match (medium weight)
+        directors = film_data.get('directors', [])
+        for director in directors:
+            director_lower = director.lower()
+            if keyword_lower in director_lower:
+                score += 0.6
+                break
+
+        # Year match (lower weight)
+        year = str(film_data.get('year', ''))
+        if keyword_lower == year:
+            score += 0.4
+
+        # Popularity bonus
+        rating = film_data.get('rating', 0)
+        vote_count = film_data.get('vote_count', 0)
+        popularity_bonus = min(0.3, (rating * vote_count) / 10000)  # Cap at 0.3
+        score += popularity_bonus
+
+        return score
 
     def _simple_edit_distance(self, s1: str, s2: str) -> int:
         """Calculate simple Levenshtein edit distance between two strings."""

@@ -82,11 +82,6 @@ def create_app():
         return {
             'message': 'filmhub',
             'version': '1.0.0',
-            # 'endpoints': {
-            #     'auth': '/api/auth',
-            #     'incomes': '/api/incomes',
-            #     'expenses': '/api/expenses'
-            # }
         }
 
     return app
